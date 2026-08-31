@@ -34,11 +34,19 @@ function setFolderCount(name,count){
   let badge=button.querySelector('.folder-count');
   if(!badge){badge=badges[0]||document.createElement('b');badge.classList.add('folder-count');badge.setAttribute('aria-label',`${name} mail count`);if(!badge.isConnected)button.appendChild(badge);}
   [...button.querySelectorAll('b')].forEach(other=>{if(other!==badge)other.remove();});
-  badge.textContent=Number.isFinite(count)?String(Math.max(0,count)):'—';
+  badge.textContent=Number.isFinite(count)?String(Math.max(0,Math.floor(count))):'—';
 }
-function getFolderCount(name){const button=getNavByName(name);if(!button)return null;const badge=button.querySelector('.folder-count');const value=Number(badge?.textContent);return Number.isFinite(value)?value:null;}
+function getFolderCount(name){const button=getNavByName(name);if(!button)return null;const badge=button.querySelector('.folder-count');const value=Number(badge?.textContent);return Number.isFinite(value)?Math.max(0,Math.floor(value)):null;}
 function adjustFolderCount(name,delta){const current=getFolderCount(name);if(current!==null)setFolderCount(name,current+delta);else pendingCountDeltas.set(name,(pendingCountDeltas.get(name)||0)+delta);}
-async function countFolderMessages(accountId,folderId,headers,isStarred=false){if(!accountId||!folderId)return null;let url=`${FOLDER_API}/api/zoho/api/accounts/${encodeURIComponent(accountId)}/messages/view?folderId=${encodeURIComponent(folderId)}&limit=200&sortBy=date&sortorder=false`;if(isStarred)url+='&flaggedMails=true';const r=await fetch(url,{headers});if(!r.ok)return null;const p=await r.json();return Array.isArray(p?.data)?p.data.length:null;}
+async function countFolderMessages(accountId,folderId,headers,isStarred=false){
+  if(!accountId||!folderId)return null;
+  let url=`${FOLDER_API}/api/zoho/api/accounts/${encodeURIComponent(accountId)}/messages/view?folderId=${encodeURIComponent(folderId)}&limit=200&sortBy=date&sortorder=false`;
+  if(isStarred)url+='&flaggedMails=true';
+  const r=await fetch(url,{headers});
+  if(!r.ok)return null;
+  const p=await r.json();
+  return Array.isArray(p?.data)?p.data.length:null;
+}
 async function refreshFolderCounts(){
   const token=storeGet('indomail_zoho_access_token');
   const accountId=storeGet('indomail_zoho_account_id')||'';
@@ -55,24 +63,22 @@ async function refreshFolderCounts(){
       const folderId=wanted==='starred'?(cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||byName.get('inbox')||''):(cachedFolderId(name)||byName.get(wanted)||'');
       if(!folderId){setFolderCount(name,0);return;}
       const count=await countFolderMessages(accountId,folderId,headers,wanted==='starred');
-      if(count!==null){const delta=pendingCountDeltas.get(name)||0;setFolderCount(name,count+delta);pendingCountDeltas.delete(name);}
+      if(count!==null){
+        const delta=pendingCountDeltas.get(name)||0;
+        setFolderCount(name,count+delta);
+        pendingCountDeltas.delete(name);
+      }
     }));
   }catch(e){console.warn('Folder count refresh failed',e);}
 }
-function applyDeleteDelta(){
-  const selected=String(storeGet('indomail_selected_folder')||'Inbox');
+function applyDeleteDelta(type,folderName){
+  const selected=String(folderName||storeGet('indomail_selected_folder')||'Inbox');
   const isTrash=selected.toLowerCase()==='trash';
-  if(isTrash){adjustFolderCount('Trash',-1);return;}
-  adjustFolderCount(selected,-1);
-  adjustFolderCount('Trash',1);
+  if(type==='move-to-trash'&&!isTrash){adjustFolderCount(selected,-1);adjustFolderCount('Trash',1);}
+  else if(type==='permanent-delete'||isTrash){adjustFolderCount('Trash',-1);}
 }
-
-document.addEventListener('indomail:folder-counts-refresh',e=>{
-  const type=e.detail?.type;
-  if(type==='move-to-trash') applyDeleteDelta();
-  else if(type==='permanent-delete') adjustFolderCount('Trash',-1);
-});
-
+window.addEventListener('indomail:delete-success',e=>applyDeleteDelta(e.detail?.type,e.detail?.folder));
+window.addEventListener('indomail:folder-counts-refresh',e=>applyDeleteDelta(e.detail?.type,e.detail?.folder));
 async function selectZohoFolder(name,button){
   document.querySelectorAll('.sidebar .nav').forEach(n=>n.classList.remove('active'));
   button?.classList.add('active');
