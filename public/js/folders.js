@@ -4,6 +4,8 @@ const storeSet=(key,value)=>{localStorage.setItem(key,value);sessionStorage.setI
 let zohoFoldersCache=null;
 let zohoFoldersPromise=null;
 let folderCountTimer=null;
+let mailListObserver=null;
+let lastVisibleMailCount=null;
 
 async function getZohoFolders(){
   if(zohoFoldersCache) return zohoFoldersCache;
@@ -38,7 +40,7 @@ function getNavByName(name){
 function setFolderCount(name,count){
   const button=getNavByName(name);
   if(!button) return;
-  let badges=button.querySelectorAll('b');
+  const badges=[...button.querySelectorAll('b')];
   let badge=button.querySelector('.folder-count');
   if(!badge){
     badge=badges[0]||document.createElement('b');
@@ -50,16 +52,42 @@ function setFolderCount(name,count){
   badge.textContent=Number.isFinite(count)?String(Math.max(0,count)):'—';
 }
 
+function syncActiveFolderCountFromList(){
+  const list=document.querySelector('#mailList');
+  const selected=String(storeGet('indomail_selected_folder')||'Inbox');
+  if(!list||!['Inbox','Starred','Sent','Drafts','Trash'].includes(selected)) return;
+  const hasStatus=!!list.querySelector('.status');
+  const hasEmptyState=!!list.querySelector('.muted');
+  const count=list.querySelectorAll('.mail').length;
+  if(hasStatus) return;
+  if(hasEmptyState && count===0){
+    lastVisibleMailCount=0;
+    setFolderCount(selected,0);
+    return;
+  }
+  if(lastVisibleMailCount!==null && count===lastVisibleMailCount-1 && selected.toLowerCase()!=='trash'){
+    const trashCount=getFolderCount('Trash');
+    if(trashCount!==null) setFolderCount('Trash',trashCount+1);
+  }
+  lastVisibleMailCount=count;
+  setFolderCount(selected,count);
+}
+
 function getFolderCount(name){
-  const button=getNavByName(name); if(!button) return null;
+  const button=getNavByName(name);
+  if(!button) return null;
   const badge=button.querySelector('.folder-count');
   const value=Number(badge?.textContent);
   return Number.isFinite(value)?value:null;
 }
 
-function adjustFolderCount(name,delta){
-  const current=getFolderCount(name);
-  if(current!==null) setFolderCount(name,current+delta);
+function observeMailList(){
+  const list=document.querySelector('#mailList');
+  if(!list) return;
+  if(mailListObserver) mailListObserver.disconnect();
+  mailListObserver=new MutationObserver(()=>syncActiveFolderCountFromList());
+  mailListObserver.observe(list,{childList:true,subtree:true});
+  syncActiveFolderCountFromList();
 }
 
 async function countFolderMessages(accountId,folderId,headers,isStarred=false){
@@ -69,7 +97,9 @@ async function countFolderMessages(accountId,folderId,headers,isStarred=false){
   const r=await fetch(url,{headers});
   if(!r.ok) return null;
   const p=await r.json();
-  return Array.isArray(p?.data)?p.data.length:null;
+  const messages=Array.isArray(p?.data)?p.data:[];
+  const ids=new Set(messages.map(m=>String(m.messageId||m.id||'')).filter(Boolean));
+  return ids.size||messages.length;
 }
 
 async function refreshFolderCounts(){
@@ -96,27 +126,9 @@ async function refreshFolderCounts(){
       const count=await countFolderMessages(accountId,folderId,headers,wanted==='starred');
       if(count!==null) setFolderCount(name,count);
     }));
+    syncActiveFolderCountFromList();
   }catch(e){console.warn('Folder count refresh failed',e);}
 }
-
-function scheduleDeleteCountUpdate(button){
-  setTimeout(()=>{
-    if(!button?.disabled || button.textContent!=='Deleting…') return;
-    const selected=String(storeGet('indomail_selected_folder')||'Inbox');
-    const isTrash=selected.toLowerCase()==='trash';
-    if(isTrash){
-      adjustFolderCount('Trash',-1);
-    }else{
-      adjustFolderCount(selected,-1);
-      adjustFolderCount('Trash',1);
-    }
-  },50);
-}
-
-document.addEventListener('click',e=>{
-  const button=e.target.closest?.('[data-action="delete"]');
-  if(button) scheduleDeleteCountUpdate(button);
-},true);
 
 async function selectZohoFolder(name,button){
   document.querySelectorAll('.sidebar .nav').forEach(n=>n.classList.remove('active'));
@@ -130,6 +142,7 @@ async function selectZohoFolder(name,button){
   storeSet('indomail_selected_folder',name);
   if(folderId) storeSet('indomail_selected_folder_id',String(folderId));
   else{localStorage.removeItem('indomail_selected_folder_id');sessionStorage.removeItem('indomail_selected_folder_id');}
+  lastVisibleMailCount=null;
   window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId:String(folderId||'')}}));
   refreshFolderCounts();
 }
@@ -148,6 +161,7 @@ function initFolderNavigation(){
       button.addEventListener('click',()=>selectZohoFolder(names[label],button));
     }
   });
+  observeMailList();
   getZohoFolders().then(()=>refreshFolderCounts()).catch(()=>{});
   if(folderCountTimer) clearInterval(folderCountTimer);
   folderCountTimer=setInterval(refreshFolderCounts,5000);
