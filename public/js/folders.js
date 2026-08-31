@@ -25,51 +25,29 @@ async function selectZohoFolder(name,button){
   if(window.innerWidth<=900) document.querySelector('#sidebar')?.classList.remove('open');
 
   if(name==='Starred'){
-    storeSet('indomail_selected_folder','Starred');
-    storeSet('indomail_selected_folder_id','');
-    window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId:''}}));
-    return;
+    let inboxId=cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||'';
+    if(!inboxId&&zohoFoldersCache){const inbox=zohoFoldersCache.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()==='inbox');inboxId=String(inbox?.folderId||inbox?.id||'');}
+    if(inboxId){
+      storeSet('indomail_selected_folder','Starred');
+      storeSet('indomail_selected_folder_id',inboxId);
+      window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name:'Starred',folderId:inboxId}}));
+      return;
+    }
+    try{await getZohoFolders();const inbox=zohoFoldersCache.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()==='inbox');inboxId=String(inbox?.folderId||inbox?.id||'');if(!inboxId)throw new Error('Zoho Inbox folder not found');storeSet('indomail_selected_folder','Starred');storeSet('indomail_selected_folder_id',inboxId);window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name:'Starred',folderId:inboxId}}));}catch(e){const list=document.querySelector('#mailList');if(list)list.innerHTML=`<div class="status" style="padding:24px 10px">${String(e.message).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}</div>`;}return;
   }
 
   let folderId=cachedFolderId(name);
-  if(!folderId && zohoFoldersCache){
-    const folder=zohoFoldersCache.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase());
-    folderId=String(folder?.folderId||folder?.id||'');
-  }
-  if(folderId){
-    storeSet('indomail_selected_folder',name);
-    storeSet('indomail_selected_folder_id',folderId);
-    if(name==='Inbox')storeSet('indomail_zoho_inbox_folder_id',folderId);
-    window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId}}));
-    return;
-  }
-  try{
-    const folders=await getZohoFolders();
-    const folder=folders.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase());
-    if(!folder) throw new Error(`Zoho ${name} folder not found`);
-    folderId=String(folder.folderId||folder.id||'');
-    if(!folderId) throw new Error(`Zoho ${name} folder ID not found`);
-    storeSet('indomail_selected_folder',name);
-    storeSet('indomail_selected_folder_id',folderId);
-    if(name==='Inbox')storeSet('indomail_zoho_inbox_folder_id',folderId);
-    window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId}}));
-  }catch(e){
-    const list=document.querySelector('#mailList');
-    if(list) list.innerHTML=`<div class="status" style="padding:24px 10px">${String(e.message).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}</div>`;
-  }
+  if(!folderId&&zohoFoldersCache){const folder=zohoFoldersCache.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase());folderId=String(folder?.folderId||folder?.id||'');}
+  if(folderId){storeSet('indomail_selected_folder',name);storeSet('indomail_selected_folder_id',folderId);if(name==='Inbox')storeSet('indomail_zoho_inbox_folder_id',folderId);window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId}}));return;}
+  try{const folders=await getZohoFolders();const folder=folders.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase());if(!folder)throw new Error(`Zoho ${name} folder not found`);folderId=String(folder.folderId||folder.id||'');if(!folderId)throw new Error(`Zoho ${name} folder ID not found`);storeSet('indomail_selected_folder',name);storeSet('indomail_selected_folder_id',folderId);if(name==='Inbox')storeSet('indomail_zoho_inbox_folder_id',folderId);window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId}}));}catch(e){const list=document.querySelector('#mailList');if(list)list.innerHTML=`<div class="status" style="padding:24px 10px">${String(e.message).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}</div>`;}
 }
 
 function initFolderNavigation(){
   const navs=[...document.querySelectorAll('.sidebar .nav')];
   const names={Inbox:'Inbox',Starred:'Starred',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};
-  navs.forEach(button=>{
-    if(button.dataset.folderBound==='1') return;
-    const label=button.textContent.trim().replace(/\s+\d+$/,'');
-    if(names[label]){button.dataset.folderBound='1';button.addEventListener('click',()=>selectZohoFolder(names[label],button));}
-  });
+  navs.forEach(button=>{if(button.dataset.folderBound==='1')return;const label=button.textContent.trim().replace(/\s+\d+$/,'');if(names[label]){button.dataset.folderBound='1';button.addEventListener('click',()=>selectZohoFolder(names[label],button));}});
   getZohoFolders().catch(()=>{});
 }
-
 window.addEventListener('indomail:logged-in',initFolderNavigation);
 window.addEventListener('load',initFolderNavigation);
 initFolderNavigation();
