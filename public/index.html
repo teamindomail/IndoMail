@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#050916">
   <meta name="description" content="IndoMail — futuristic, secure and intelligent email client.">
   <title>IndoMail</title>
-  <link rel="stylesheet" href="./css/base.css?v=30">
-  <link rel="stylesheet" href="./css/login.css?v=30">
-  <link rel="stylesheet" href="./css/inbox.css?v=30">
-  <link rel="stylesheet" href="./css/mobile-fix.css?v=30">
-  <link rel="stylesheet" href="./css/compose.css?v=30">
-  <link rel="stylesheet" href="./css/password.css?v=30">
-  <link rel="stylesheet" href="./css/premium-theme.css?v=30">
-  <link rel="stylesheet" href="./css/futuristic-v2.css?v=30">
-  <link rel="stylesheet" href="./css/premium-demo-final.css?v=30">
-  <link rel="stylesheet" href="./css/responsive-pixel-fix.css?v=30">
-  <link rel="stylesheet" href="./css/indomail-demo.css?v=1">
+  <link rel="stylesheet" href="./css/base.css?v=99">
+  <link rel="stylesheet" href="./css/login.css?v=99">
+  <link rel="stylesheet" href="./css/inbox.css?v=99">
+  <link rel="stylesheet" href="./css/mobile-fix.css?v=99">
+  <link rel="stylesheet" href="./css/compose.css?v=99">
+  <link rel="stylesheet" href="./css/password.css?v=99">
+  <link rel="stylesheet" href="./css/premium-theme.css?v=99">
+  <link rel="stylesheet" href="./css/futuristic-v2.css?v=99">
+  <link rel="stylesheet" href="./css/premium-demo-final.css?v=99">
+  <link rel="stylesheet" href="./css/responsive-pixel-fix.css?v=99">
+  <link rel="stylesheet" href="./css/indomail-demo.css?v=99">
 </head>
 <body>
   <main class="app-shell">
@@ -45,11 +45,10 @@
       </div>
       <nav class="mobile-nav" aria-label="Mobile navigation"><button class="active" type="button"><span>✉</span><span>Mail</span></button><button type="button" id="mobileFolders"><span>▱</span><span>Folders</span></button><button class="compose-tab" type="button" id="mobileCompose"><strong>＋</strong><span>Compose</span></button><button type="button" id="mobileSettings"><span>⚙</span><span>Settings</span></button></nav>
     </section>
-
     <div class="modal hidden" id="composeModal" role="dialog" aria-modal="true" aria-labelledby="composeTitle"><form class="compose-card" id="composeForm"><div class="compose-head"><div><span class="compose-kicker">NEW MESSAGE</span><h2 id="composeTitle">Compose email</h2></div><button type="button" class="icon-btn" id="composeClose" aria-label="Close compose">×</button></div><label>To<input id="composeTo" type="email" required placeholder="recipient@example.com"></label><label>Subject<input id="composeSubject" type="text" placeholder="Subject"></label><label>Message<textarea id="composeBody" rows="9" placeholder="Write your message..."></textarea></label><div class="compose-actions"><button type="button" class="secondary" id="composeCancel">Save draft</button><button class="primary" type="submit">Send email ↗</button></div></form></div>
   </main>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script type="module" src="./js/login.js?v=30"></script><script type="module" src="./js/google-login.js?v=30"></script><script type="module" src="./js/password.js?v=30"></script><script type="module" src="./js/inbox.js?v=30"></script><script type="module" src="./js/premium-desktop-ui.js?v=30"></script><script type="module" src="./js/compose.js?v=30"></script><script type="module" src="./js/providers.js?v=30"></script><script type="module" src="./js/folders.js?v=30"></script><script type="module" src="./js/zoho-auth-recovery.js?v=30"></script><script type="module" src="./js/search.js?v=30"></script><script type="module" src="./js/draft-edit.js?v=30"></script><script type="module" src="./js/account-settings.js?v=30"></script><script type="module" src="./js/profile-menu-fix.js?v=30"></script><script type="module" src="./js/profile-redesign.js?v=30"></script><script type="module" src="./js/ui-finalizer.js?v=30"></script>
+  <script type="module" src="./js/login.js?v=99"></script><script type="module" src="./js/google-login.js?v=99"></script><script type="module" src="./js/password.js?v=99"></script><script type="module" src="./js/inbox.js?v=99"></script><script type="module" src="./js/premium-desktop-ui.js?v=99"></script><script type="module" src="./js/compose.js?v=99"></script><script type="module" src="./js/providers.js?v=99"></script><script type="module" src="./js/folders.js?v=99"></script><script type="module" src="./js/zoho-auth-recovery.js?v=99"></script><script type="module" src="./js/search.js?v=99"></script><script type="module" src="./js/draft-edit.js?v=99"></script><script type="module" src="./js/account-settings.js?v=99"></script><script type="module" src="./js/profile-menu-fix.js?v=99"></script><script type="module" src="./js/profile-redesign.js?v=99"></script><script type="module" src="./js/ui-finalizer.js?v=99"></script>
   <script>
     document.getElementById('mobileCompose')?.addEventListener('click',()=>document.getElementById('composeBtn')?.click());
     document.getElementById('mobileSettings')?.addEventListener('click',()=>document.getElementById('sidebarSettings')?.click());
