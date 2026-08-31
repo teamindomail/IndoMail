@@ -24,8 +24,13 @@ async function loadZohoIntoMainInbox(){const token=storeGet('indomail_zoho_acces
 function renderInbox(){loadZohoIntoMainInbox();}
 window.addEventListener('indomail:logged-in',renderInbox);window.addEventListener('indomail:refresh',loadZohoIntoMainInbox);menuBtn?.addEventListener('click',()=>sidebar?.classList.toggle('open'));refreshBtn?.addEventListener('click',loadZohoIntoMainInbox);renderInbox();
 
-// Mobile drawer: close on outside tap without allowing the underlying mail row to receive that tap.
+// Mobile drawer: consume the complete outside tap before it can reach a mail row.
+let suppressNextOutsideClick=false;
 function closeMobileMenu(){sidebar?.classList.remove('open');}
+function outsideMenuTarget(e){return !e.target.closest('#sidebar')&&!e.target.closest('#menuBtn');}
+function consumeOutsideMenuTap(e){if(!window.matchMedia('(max-width: 900px)').matches)return;if(!sidebar?.classList.contains('open'))return;if(!outsideMenuTarget(e))return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();closeMobileMenu();suppressNextOutsideClick=true;window.setTimeout(()=>{suppressNextOutsideClick=false;},700);}
 menuBtn?.addEventListener('click',e=>e.stopPropagation());
-document.addEventListener('click',e=>{if(!window.matchMedia('(max-width: 900px)').matches)return;if(!sidebar?.classList.contains('open'))return;if(e.target.closest('#sidebar')||e.target.closest('#menuBtn'))return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();closeMobileMenu();},true);
+document.addEventListener('pointerdown',consumeOutsideMenuTap,true);
+document.addEventListener('touchstart',consumeOutsideMenuTap,{capture:true,passive:false});
+document.addEventListener('click',e=>{if(suppressNextOutsideClick){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();suppressNextOutsideClick=false;return;}consumeOutsideMenuTap(e);},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMenu();});
