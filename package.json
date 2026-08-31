@@ -1,0 +1,13 @@
+{
+  "name": "indomail",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "IndoMail - a clean, secure email client.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
