@@ -24,8 +24,8 @@ async function loadZohoIntoMainInbox(){const token=storeGet('indomail_zoho_acces
 function renderInbox(){loadZohoIntoMainInbox();}
 window.addEventListener('indomail:logged-in',renderInbox);window.addEventListener('indomail:refresh',loadZohoIntoMainInbox);menuBtn?.addEventListener('click',()=>sidebar?.classList.toggle('open'));refreshBtn?.addEventListener('click',loadZohoIntoMainInbox);renderInbox();
 
-// Mobile drawer: tapping the mail area (the space to the right of the menu) closes it.
+// Mobile drawer: tapping outside closes it without activating the underlying mail/message.
 function closeMobileMenu(){if(window.matchMedia('(max-width: 900px)').matches)sidebar?.classList.remove('open');}
 menuBtn?.addEventListener('click',e=>e.stopPropagation());
-document.addEventListener('click',e=>{if(!window.matchMedia('(max-width: 900px)').matches)return;if(!sidebar?.classList.contains('open'))return;if(e.target.closest('#sidebar')||e.target.closest('#menuBtn'))return;closeMobileMenu();});
+document.addEventListener('click',e=>{if(!window.matchMedia('(max-width: 900px)').matches)return;if(!sidebar?.classList.contains('open'))return;if(e.target.closest('#sidebar')||e.target.closest('#menuBtn'))return;e.preventDefault();e.stopPropagation();closeMobileMenu();},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMenu();});
