@@ -1,1 +1,4 @@
-nnxxn
+const loginView=document.querySelector('#loginView');const inboxView=document.querySelector('#inboxView');const form=document.querySelector('#loginForm');const status=document.querySelector('#loginStatus');
+
+document.querySelectorAll('[data-provider]').forEach(button=>button.addEventListener('click',()=>{status.textContent=`${button.dataset.provider} secure sign-in will be connected in the authentication stage.`;}));
+form.addEventListener('submit',event=>{event.preventDefault();if(!form.reportValidity())return;status.textContent='';loginView.classList.add('hidden');inboxView.classList.remove('hidden');window.dispatchEvent(new CustomEvent('indomail:logged-in'));});
