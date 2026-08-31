@@ -1,1 +1,25 @@
-(()=>{const style=document.createElement('style');style.textContent=`.account-pop{width:min(340px,calc(100vw - 32px))!important;right:16px!important;top:64px!important;max-height:calc(100vh - 80px);overflow:auto}.settings-modal,.account-modal,.feature-modal{padding:24px!important}.settings-card,.account-card,.feature-card{width:min(560px,calc(100vw - 32px))!important;max-height:calc(100vh - 48px)!important;border-radius:18px!important}.feature-card,.settings-card,.account-card{box-sizing:border-box}@media(max-width:600px){.account-pop{width:min(340px,calc(100vw - 32px))!important;right:16px!important;top:58px!important}.settings-modal,.account-modal,.feature-modal{padding:16px!important}.settings-card,.account-card,.feature-card{width:calc(100vw - 32px)!important;max-height:calc(100vh - 32px)!important;border-radius:18px!important}}`;document.head.appendChild(style);let swallow=false;function outsideProfile(e){const menu=document.querySelector('#profileMenu,.account-pop');const btn=document.querySelector('#accountBtn');if(!menu||!btn)return;if(!menu.contains(e.target)&&e.target!==btn){swallow=true;menu.remove();setTimeout(()=>{swallow=false},450);e.preventDefault();e.stopPropagation();e.stopImmediatePropagation()}}document.addEventListener('pointerdown',outsideProfile,true);document.addEventListener('touchstart',outsideProfile,{capture:true,passive:false});document.addEventListener('click',e=>{if(swallow){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();swallow=false}},true);})();
+/* IndoMail stable profile/menu interaction layer. */
+(()=>{
+  const css=document.createElement('style');
+  css.textContent=`
+    .account-pop{max-width:calc(100vw - 24px)!important;max-height:calc(100dvh - 78px)!important;overflow:auto!important}
+    .settings-modal,.account-modal,.feature-modal{z-index:2000!important}
+    .settings-card,.account-card,.feature-card{max-width:calc(100vw - 24px)!important;max-height:calc(100dvh - 24px)!important;overflow:auto!important;box-sizing:border-box!important}
+    @media(max-width:900px){
+      .account-pop{left:10px!important;right:10px!important;top:58px!important;width:auto!important;max-width:none!important;max-height:calc(100dvh - 70px)!important}
+      .settings-modal,.account-modal,.feature-modal{padding:10px!important}
+      .settings-card,.account-card,.feature-card{width:min(100%,620px)!important;max-width:100%!important;max-height:calc(100dvh - 20px)!important}
+    }
+  `;
+  document.head.appendChild(css);
+  function closeMenu(){document.querySelector('.account-pop')?.remove();}
+  document.addEventListener('click',event=>{
+    const menu=event.target.closest?.('.account-pop');
+    const trigger=event.target.closest?.('#accountBtn');
+    if(!menu&&!trigger)closeMenu();
+  },false);
+  window.addEventListener('resize',()=>{
+    const menu=document.querySelector('.account-pop');
+    if(menu&&window.innerWidth<=900){menu.style.left='10px';menu.style.right='10px';menu.style.width='auto';}
+  });
+})();
