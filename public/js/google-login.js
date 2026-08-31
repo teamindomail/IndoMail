@@ -37,8 +37,8 @@ function initGoogle() {
     use_fedcm_for_prompt: false,
   });
 
-  // Keep the IndoMail custom dark button visible. Do not replace it with
-  // Google's hosted iframe, which forces its own white/light presentation.
+  // Keep the custom IndoMail provider button exactly like the Zoho button.
+  // Never replace it with Google's hosted white/light iframe.
   googleHost.type = 'button';
   googleHost.classList.add('google-provider-button');
   googleHost.addEventListener('click', event => {
