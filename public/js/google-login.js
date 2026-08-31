@@ -8,7 +8,7 @@ const GOOGLE_CLIENT_ID = '564678253197-oqo4omi2r8co0vlui5ev3tq7c9j8jm13.apps.goo
 function setStatus(message, isError = true) {
   if (!status) return;
   status.textContent = message;
-  status.style.color = isError ? '#ff8596' : '#52e2a5';
+  status.style.color = isError ? '#ff8596' : '#6ef0bc';
 }
 
 function handleCredentialResponse(response) {
@@ -16,7 +16,6 @@ function handleCredentialResponse(response) {
     setStatus('Google sign-in did not return a credential.');
     return;
   }
-
   sessionStorage.setItem('indomail_google_id_token', response.credential);
   setStatus('Google sign-in successful.', false);
   loginView?.classList.add('hidden');
@@ -41,14 +40,16 @@ function renderGoogleButton() {
   const holder = document.createElement('div');
   holder.className = 'google-signin-holder';
   holder.setAttribute('aria-label', 'Login with Google');
+  holder.style.width = '100%';
+  holder.style.display = 'block';
   googleHost.replaceWith(holder);
 
   const width = Math.min(400, Math.max(240, Math.floor(holder.parentElement?.clientWidth || 320)));
   window.google.accounts.id.renderButton(holder, {
     type: 'standard',
-    theme: 'outline_dark',
+    theme: 'filled_black',
     size: 'large',
-    text: 'continue_with',
+    text: 'signin_with',
     shape: 'rectangular',
     width,
     logo_alignment: 'left',
