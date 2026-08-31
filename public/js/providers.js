@@ -1,6 +1,5 @@
 const GOOGLE_CLIENT_ID = '564678253197-oqo4omi2r8co0vlui5ev3tq7c9j8jm13.apps.googleusercontent.com';
-// Add the Client ID from a Zoho client-based JavaScript application here.
-const ZOHO_CLIENT_ID = 'REPLACE_WITH_ZOHO_CLIENT_ID';
+const ZOHO_CLIENT_ID = '1000.G7COWJ6TSJVGN7R9SA9Z3SSZAHSM1A';
 const ZOHO_ACCOUNTS_URL = 'https://accounts.zoho.com';
 
 let gmailToken = sessionStorage.getItem('indomail_gmail_access_token') || '';
@@ -13,7 +12,7 @@ const styles = `
 document.head.appendChild(Object.assign(document.createElement('style'), {textContent: styles}));
 
 function escapeHtml(value='') {
-  return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  return String(value).replace(/[&<>\"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
 }
 
 function setStatus(panel, message, error=false) {
@@ -65,9 +64,6 @@ function connectGmail(panel) {
 }
 
 function connectZoho(panel) {
-  if (ZOHO_CLIENT_ID.startsWith('REPLACE_')) {
-    return setStatus(panel, 'Zoho needs its Client ID first. Create a Zoho client-based JavaScript app, then add its Client ID to providers.js.', true);
-  }
   const redirectUri = `${location.origin}${location.pathname}`;
   const params = new URLSearchParams({
     response_type:'token',
@@ -77,6 +73,7 @@ function connectZoho(panel) {
     access_type:'online',
     prompt:'consent',
   });
+  setStatus(panel, 'Opening Zoho permission for Mail access…');
   location.assign(`${ZOHO_ACCOUNTS_URL}/oauth/v2/auth?${params}`);
 }
 
@@ -86,7 +83,7 @@ function parseZohoReturn(panel) {
   if (!token) return;
   sessionStorage.setItem('indomail_zoho_access_token', token);
   history.replaceState({}, document.title, `${location.pathname}${location.search}`);
-  setStatus(panel, 'Zoho authorization succeeded. Mail API access can now be wired in the next step.');
+  setStatus(panel, 'Zoho authorization succeeded.');
 }
 
 function mountProviderPanel() {
