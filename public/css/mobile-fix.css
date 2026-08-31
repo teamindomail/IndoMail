@@ -1,0 +1,48 @@
+/* Mobile mail actions: keep destructive actions readable and tappable. */
+@media (max-width: 600px) {
+  .mail-actions {
+    flex: 0 0 auto;
+    min-width: 86px;
+    gap: 6px;
+    margin-top: 12px;
+    align-items: stretch;
+  }
+
+  .mail-actions .star {
+    align-self: flex-end;
+    width: 32px;
+    min-height: 30px;
+  }
+
+  .mail-actions .delete-btn {
+    width: 86px;
+    min-height: 38px;
+    padding: 6px 7px;
+    font-size: 11px;
+    line-height: 1.15;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mail-detail-toolbar .delete-btn {
+    width: auto;
+    min-width: 110px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .mail-actions {
+    min-width: 78px;
+  }
+
+  .mail-actions .delete-btn {
+    width: 78px;
+    font-size: 10px;
+    padding-inline: 5px;
+  }
+}
