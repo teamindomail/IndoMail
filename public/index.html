@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#050916">
   <meta name="description" content="IndoMail — futuristic, secure and intelligent email client.">
   <title>IndoMail</title>
-  <link rel="stylesheet" href="./css/indomail-demo.css?v=203">
+  <link rel="stylesheet" href="./css/indomail-demo.css?v=204">
 </head>
 <body>
   <main class="app-shell">
@@ -32,29 +32,14 @@
     <div class="modal hidden" id="composeModal" role="dialog" aria-modal="true" aria-labelledby="composeTitle"><form class="compose-card" id="composeForm"><div class="compose-head"><div><span class="compose-kicker">NEW MESSAGE</span><h2 id="composeTitle">Compose email</h2></div><button type="button" class="icon-btn" id="composeClose" aria-label="Close compose">×</button></div><label>To<input id="composeTo" type="email" required placeholder="recipient@example.com"></label><label>Subject<input id="composeSubject" type="text" placeholder="Subject"></label><label>Message<textarea id="composeBody" rows="9" placeholder="Write your message..."></textarea></label><div class="compose-actions"><button type="button" class="secondary" id="composeCancel">Save draft</button><button class="primary" type="submit">Send email ↗</button></div></form></div>
   </main>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script type="module" src="./js/login.js?v=203"></script><script type="module" src="./js/google-login.js?v=203"></script><script type="module" src="./js/password.js?v=203"></script><script type="module" src="./js/inbox.js?v=203"></script><script type="module" src="./js/premium-desktop-ui.js?v=203"></script><script type="module" src="./js/compose.js?v=203"></script><script type="module" src="./js/providers.js?v=203"></script><script type="module" src="./js/folders.js?v=203"></script><script type="module" src="./js/zoho-auth-recovery.js?v=203"></script><script type="module" src="./js/search.js?v=203"></script><script type="module" src="./js/draft-edit.js?v=203"></script><script type="module" src="./js/account-settings.js?v=203"></script><script type="module" src="./js/live-count-sync.js?v=203"></script>
+  <script type="module" src="./js/login.js?v=204"></script><script type="module" src="./js/google-login.js?v=204"></script><script type="module" src="./js/password.js?v=204"></script><script type="module" src="./js/inbox.js?v=204"></script><script type="module" src="./js/mail-list-v2.js?v=204"></script><script type="module" src="./js/premium-desktop-ui.js?v=204"></script><script type="module" src="./js/compose.js?v=204"></script><script type="module" src="./js/providers.js?v=204"></script><script type="module" src="./js/folders.js?v=204"></script><script type="module" src="./js/zoho-auth-recovery.js?v=204"></script><script type="module" src="./js/search.js?v=204"></script><script type="module" src="./js/draft-edit.js?v=204"></script><script type="module" src="./js/account-settings.js?v=204"></script><script type="module" src="./js/live-count-sync.js?v=204"></script>
   <script>
     document.getElementById('mobileCompose')?.addEventListener('click',()=>document.getElementById('composeBtn')?.click());
     document.getElementById('mobileSettings')?.addEventListener('click',()=>document.getElementById('sidebarSettings')?.click());
     document.getElementById('mobileFolders')?.addEventListener('click',()=>document.getElementById('menuBtn')?.click());
-
-    // Legacy cleanup: the old floating "Mail Up" compose control is no longer part of IndoMail.
-    // Keep the supported Compose controls (#composeBtn / #mobileCompose) untouched.
-    const LEGACY_MAIL_UP_RE = /^(mail\s*up|mailup)$/i;
-    const LEGACY_MAIL_UP_CLASS_RE = /(^|[-_\s])mail[-_\s]?up($|[-_\s])/i;
-    function removeLegacyMailUp(root=document){
-      const nodes=[];
-      if(root.nodeType===1) nodes.push(root);
-      if(root.querySelectorAll) nodes.push(...root.querySelectorAll('button,a,[role="button"],div,span'));
-      for(const el of nodes){
-        if(el.id==='composeBtn'||el.id==='mobileCompose'||el.closest?.('#composeBtn,#mobileCompose')) continue;
-        const cls=typeof el.className==='string'?el.className:'';
-        const text=(el.textContent||'').replace(/\s+/g,' ').trim();
-        if(LEGACY_MAIL_UP_RE.test(text)||LEGACY_MAIL_UP_CLASS_RE.test(cls)) el.remove();
-      }
-    }
-    removeLegacyMailUp();
-    new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>n.nodeType===1&&removeLegacyMailUp(n)))).observe(document.body,{childList:true,subtree:true});
+    const LEGACY_MAIL_UP_RE=/^(mail\s*up|mailup)$/i,LEGACY_MAIL_UP_CLASS_RE=/(^|[-_\s])mail[-_\s]?up($|[-_\s])/i;
+    function removeLegacyMailUp(root=document){const nodes=[];if(root.nodeType===1)nodes.push(root);if(root.querySelectorAll)nodes.push(...root.querySelectorAll('button,a,[role="button"],div,span'));for(const el of nodes){if(el.id==='composeBtn'||el.id==='mobileCompose'||el.closest?.('#composeBtn,#mobileCompose'))continue;const cls=typeof el.className==='string'?el.className:'';const text=(el.textContent||'').replace(/\s+/g,' ').trim();if(LEGACY_MAIL_UP_RE.test(text)||LEGACY_MAIL_UP_CLASS_RE.test(cls))el.remove();}}
+    removeLegacyMailUp();new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>n.nodeType===1&&removeLegacyMailUp(n)))).observe(document.body,{childList:true,subtree:true});
   </script>
 </body>
 </html>
