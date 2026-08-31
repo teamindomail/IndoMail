@@ -1,11 +1,12 @@
 const GOOGLE_CLIENT_ID = '564678253197-oqo4omi2r8co0vlui5ev3tq7c9j8jm13.apps.googleusercontent.com';
 const ZOHO_CLIENT_ID = '1000.G7COWJ6TSJVGN7R9SA9Z3SSZAHSM1A';
 const ZOHO_ACCOUNTS_URL = 'https://accounts.zoho.com';
+const API_BASE_URL = 'https://indomail-production.up.railway.app';
 
 let gmailToken = sessionStorage.getItem('indomail_gmail_access_token') || '';
 let gmailTokenClient;
 let zohoToken = sessionStorage.getItem('indomail_zoho_access_token') || '';
-let zohoApiDomain = sessionStorage.getItem('indomail_zoho_api_domain') || '';
+let zohoApiDomain = sessionStorage.getItem('indomail_zoho_api_domain') || 'https://www.zohoapis.com';
 let zohoAccountId = sessionStorage.getItem('indomail_zoho_account_id') || '';
 let zohoInboxFolderId = sessionStorage.getItem('indomail_zoho_inbox_folder_id') || '';
 
@@ -83,12 +84,12 @@ function connectZoho(panel) {
 
 async function zohoRequest(path, options={}) {
   if (!zohoToken) throw new Error('Zoho is not connected.');
-  const base = zohoApiDomain || 'https://www.zohoapis.com';
-  const response = await fetch(`${base}${path}`, {
+  const response = await fetch(`${API_BASE_URL}/api/zoho${path}`, {
     ...options,
     headers: {
       Accept:'application/json',
       Authorization:`Zoho-oauthtoken ${zohoToken}`,
+      'X-Zoho-Api-Domain': zohoApiDomain,
       ...(options.headers || {}),
     },
   });
@@ -106,10 +107,7 @@ async function loadZohoInbox(panel) {
 
   const foldersResponse = await zohoRequest(`/api/accounts/${encodeURIComponent(zohoAccountId)}/folders`);
   const folders = foldersResponse?.data || [];
-  const inbox = folders.find(folder => {
-    const name = String(folder.folderName || folder.name || '').toLowerCase();
-    return name === 'inbox';
-  });
+  const inbox = folders.find(folder => String(folder.folderName || folder.name || '').toLowerCase() === 'inbox');
   if (!inbox?.folderId) throw new Error('Zoho Inbox folder was not returned.');
   zohoInboxFolderId = String(inbox.folderId);
   sessionStorage.setItem('indomail_zoho_inbox_folder_id', zohoInboxFolderId);
@@ -120,7 +118,7 @@ async function loadZohoInbox(panel) {
   setStatus(panel, `Zoho connected — ${messages.length} inbox message${messages.length === 1 ? '' : 's'} loaded.`);
 }
 
-function parseZohoReturn(panel) {
+function parseZohoReturn() {
   const params = new URLSearchParams(location.hash.replace(/^#/,''));
   const token = params.get('access_token');
   if (!token) return false;
@@ -149,12 +147,10 @@ function mountProviderPanel() {
 }
 
 const panel = mountProviderPanel();
-window.addEventListener('indomail:logged-in', () => {
-  panel?.classList.remove('hidden');
-});
+window.addEventListener('indomail:logged-in', () => panel?.classList.remove('hidden'));
 if (sessionStorage.getItem('indomail_google_id_token')) panel?.classList.remove('hidden');
 
-const zohoReturned = panel ? parseZohoReturn(panel) : false;
+const zohoReturned = panel ? parseZohoReturn() : false;
 if (panel && (zohoReturned || sessionStorage.getItem('indomail_zoho_access_token'))) {
   document.querySelector('#loginView')?.classList.add('hidden');
   document.querySelector('#inboxView')?.classList.remove('hidden');
@@ -163,6 +159,4 @@ if (panel && (zohoReturned || sessionStorage.getItem('indomail_zoho_access_token
 }
 
 const loginZohoButton = document.querySelector('[data-provider="Zoho"]');
-loginZohoButton?.addEventListener('click', () => {
-  if (panel) connectZoho(panel);
-});
+loginZohoButton?.addEventListener('click', () => { if (panel) connectZoho(panel); });
