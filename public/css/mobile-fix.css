@@ -1,2 +1,0 @@
-/* Mobile compatibility layer. Responsive behavior is defined in inbox.css and responsive-pixel-fix.css. */
-@media(max-width:900px){html,body{width:100%;max-width:100%;overflow-x:hidden!important}.app-shell{max-width:100%;overflow-x:hidden!important}.mail-main{min-width:0!important}.sender,.subject,.preview{max-width:100%;overflow:hidden;text-overflow:ellipsis}}
