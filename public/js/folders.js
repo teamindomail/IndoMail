@@ -24,14 +24,19 @@ async function selectZohoFolder(name,button){
   if(folderId)storeSet('indomail_selected_folder_id',String(folderId));else{localStorage.removeItem('indomail_selected_folder_id');sessionStorage.removeItem('indomail_selected_folder_id');}
   window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId:String(folderId||'')}}));
 }
-function mountFloatingCompose(){
-  let button=document.querySelector('#floatingCompose');
-  if(button)return;
-  button=document.createElement('button');button.id='floatingCompose';button.type='button';button.setAttribute('aria-label','Compose new mail');button.textContent='＋ Compose';
-  button.addEventListener('click',()=>document.querySelector('#composeBtn')?.click());
-  document.body.appendChild(button);
-  const style=document.createElement('style');style.id='floating-compose-style';style.textContent=`#floatingCompose{position:fixed;right:28px;bottom:28px;z-index:80;border:0;border-radius:14px;padding:12px 18px;background:#5b4bdb;color:#fff;font-weight:700;box-shadow:0 12px 28px rgba(20,30,60,.2);cursor:pointer}#floatingCompose:hover{transform:translateY(-1px)}@media(max-width:900px){#floatingCompose{right:18px;bottom:18px;padding:11px 15px;font-size:13px}}`;document.head.appendChild(style);
+function initFolderNavigation(){
+  const navs=[...document.querySelectorAll('.sidebar .nav')];
+  const names={Inbox:'Inbox',Starred:'Starred',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};
+  navs.forEach(button=>{
+    if(button.dataset.folderBound==='1')return;
+    const label=button.textContent.trim().replace(/\s+\d+$/,'');
+    if(names[label]){
+      button.dataset.folderBound='1';
+      button.addEventListener('click',()=>selectZohoFolder(names[label],button));
+    }
+  });
+  getZohoFolders().catch(()=>{});
 }
-function removeSidebarCompose(){const compose=document.querySelector('#sidebar #composeBtn');if(compose)compose.style.display='none';mountFloatingCompose();}
-function initFolderNavigation(){const navs=[...document.querySelectorAll('.sidebar .nav')];const names={Inbox:'Inbox',Starred:'Starred',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};navs.forEach(button=>{if(button.dataset.folderBound==='1')return;const label=button.textContent.trim().replace(/\s+\d+$/,'');if(names[label]){button.dataset.folderBound='1';button.addEventListener('click',()=>selectZohoFolder(names[label],button));}});removeSidebarCompose();getZohoFolders().catch(()=>{});}
-window.addEventListener('indomail:logged-in',initFolderNavigation);window.addEventListener('load',initFolderNavigation);initFolderNavigation();
+window.addEventListener('indomail:logged-in',initFolderNavigation);
+window.addEventListener('load',initFolderNavigation);
+initFolderNavigation();
