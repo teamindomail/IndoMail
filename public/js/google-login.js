@@ -37,23 +37,42 @@ function renderGoogleButton() {
     use_fedcm_for_prompt: true,
   });
 
+  // Keep Google's official button hidden only as the authentication trigger.
+  // The visible control is a native IndoMail button so it matches the Zoho button exactly.
+  const wrapper = document.createElement('div');
+  wrapper.className = 'google-auth-wrapper';
+  wrapper.style.cssText = 'position:absolute;left:-99999px;top:-99999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;';
   const holder = document.createElement('div');
   holder.className = 'google-signin-holder';
-  holder.setAttribute('aria-label', 'Login with Google');
-  holder.style.width = '100%';
-  holder.style.display = 'block';
-  googleHost.replaceWith(holder);
+  wrapper.appendChild(holder);
+  document.body.appendChild(wrapper);
 
-  const width = Math.min(400, Math.max(240, Math.floor(holder.parentElement?.clientWidth || 320)));
   window.google.accounts.id.renderButton(holder, {
     type: 'standard',
     theme: 'filled_black',
     size: 'large',
     text: 'signin_with',
     shape: 'rectangular',
-    width,
+    width: 320,
     logo_alignment: 'left',
   });
+
+  const googleButton = holder.querySelector('div[role="button"]') || holder.querySelector('button');
+  const visibleButton = document.createElement('button');
+  visibleButton.type = 'button';
+  visibleButton.className = `${googleHost.className || 'provider'} google`;
+  visibleButton.setAttribute('aria-label', 'Continue with Google');
+  visibleButton.innerHTML = '<span class="google-mark" aria-hidden="true">G</span>Continue with Google';
+
+  visibleButton.addEventListener('click', () => {
+    if (googleButton) {
+      googleButton.click();
+      return;
+    }
+    setStatus('Google sign-in is loading. Please try again.');
+  });
+
+  googleHost.replaceWith(visibleButton);
 }
 
 renderGoogleButton();
