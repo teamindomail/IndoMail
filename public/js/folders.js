@@ -139,7 +139,7 @@ function initFolderNavigation(){
   navs.forEach(button=>{if(button.dataset.folderBound==='1')return;const label=button.textContent.trim().replace(/\s+\d+$/,'').replace(/\s+—$/,'');if(names[label]){button.dataset.folderBound='1';button.addEventListener('click',()=>selectZohoFolder(names[label],button));}});
   getZohoFolders().then(()=>refreshFolderCounts()).catch(()=>{});
   if(folderCountTimer)clearInterval(folderCountTimer);
-  folderCountTimer=setInterval(refreshFolderCounts,5000);
+  folderCountTimer=setInterval(refreshFolderCounts,1000);
 }
 window.addEventListener('indomail:logged-in',initFolderNavigation);
 window.addEventListener('indomail:refresh',()=>{observeMailList();syncActiveCountFromList();refreshFolderCounts();});
