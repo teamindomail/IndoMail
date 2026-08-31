@@ -18,12 +18,18 @@ async function getZohoFolders(){
 function cachedFolderId(name){return storeGet(`indomail_folder_id_${name.toLowerCase()}`)||'';}
 
 async function selectZohoFolder(name,button){
-  // Change the UI immediately; never wait for Zoho before showing the selected folder.
   document.querySelectorAll('.sidebar .nav').forEach(n=>n.classList.remove('active'));
   button?.classList.add('active');
   const head=document.querySelector('.panel-head h2');if(head)head.textContent=name;
   const status=document.querySelector('.panel-head span');if(status)status.textContent='Loading…';
   if(window.innerWidth<=900) document.querySelector('#sidebar')?.classList.remove('open');
+
+  if(name==='Starred'){
+    storeSet('indomail_selected_folder','Starred');
+    storeSet('indomail_selected_folder_id','');
+    window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId:''}}));
+    return;
+  }
 
   let folderId=cachedFolderId(name);
   if(!folderId && zohoFoldersCache){
@@ -33,9 +39,8 @@ async function selectZohoFolder(name,button){
   if(folderId){
     storeSet('indomail_selected_folder',name);
     storeSet('indomail_selected_folder_id',folderId);
-    storeSet('indomail_zoho_inbox_folder_id',folderId);
+    if(name==='Inbox')storeSet('indomail_zoho_inbox_folder_id',folderId);
     window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId}}));
-    window.dispatchEvent(new CustomEvent('indomail:refresh'));
     return;
   }
   try{
@@ -46,8 +51,8 @@ async function selectZohoFolder(name,button){
     if(!folderId) throw new Error(`Zoho ${name} folder ID not found`);
     storeSet('indomail_selected_folder',name);
     storeSet('indomail_selected_folder_id',folderId);
-    storeSet('indomail_zoho_inbox_folder_id',folderId);
-    window.dispatchEvent(new CustomEvent('indomail:refresh'));
+    if(name==='Inbox')storeSet('indomail_zoho_inbox_folder_id',folderId);
+    window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId}}));
   }catch(e){
     const list=document.querySelector('#mailList');
     if(list) list.innerHTML=`<div class="status" style="padding:24px 10px">${String(e.message).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}</div>`;
@@ -56,7 +61,7 @@ async function selectZohoFolder(name,button){
 
 function initFolderNavigation(){
   const navs=[...document.querySelectorAll('.sidebar .nav')];
-  const names={Inbox:'Inbox',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};
+  const names={Inbox:'Inbox',Starred:'Starred',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};
   navs.forEach(button=>{
     if(button.dataset.folderBound==='1') return;
     const label=button.textContent.trim().replace(/\s+\d+$/,'');
