@@ -47,7 +47,19 @@ function setFolderCount(name,count){
     if(!badge.isConnected) button.appendChild(badge);
   }
   [...button.querySelectorAll('b')].forEach(other=>{if(other!==badge)other.remove();});
-  badge.textContent=Number.isFinite(count)?String(count):'—';
+  badge.textContent=Number.isFinite(count)?String(Math.max(0,count)):'—';
+}
+
+function getFolderCount(name){
+  const button=getNavByName(name); if(!button) return null;
+  const badge=button.querySelector('.folder-count');
+  const value=Number(badge?.textContent);
+  return Number.isFinite(value)?value:null;
+}
+
+function adjustFolderCount(name,delta){
+  const current=getFolderCount(name);
+  if(current!==null) setFolderCount(name,current+delta);
 }
 
 async function countFolderMessages(accountId,folderId,headers,isStarred=false){
@@ -86,6 +98,25 @@ async function refreshFolderCounts(){
     }));
   }catch(e){console.warn('Folder count refresh failed',e);}
 }
+
+function scheduleDeleteCountUpdate(button){
+  setTimeout(()=>{
+    if(!button?.disabled || button.textContent!=='Deleting…') return;
+    const selected=String(storeGet('indomail_selected_folder')||'Inbox');
+    const isTrash=selected.toLowerCase()==='trash';
+    if(isTrash){
+      adjustFolderCount('Trash',-1);
+    }else{
+      adjustFolderCount(selected,-1);
+      adjustFolderCount('Trash',1);
+    }
+  },50);
+}
+
+document.addEventListener('click',e=>{
+  const button=e.target.closest?.('[data-action="delete"]');
+  if(button) scheduleDeleteCountUpdate(button);
+},true);
 
 async function selectZohoFolder(name,button){
   document.querySelectorAll('.sidebar .nav').forEach(n=>n.classList.remove('active'));
