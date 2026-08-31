@@ -4,8 +4,7 @@ const storeSet=(key,value)=>{localStorage.setItem(key,value);sessionStorage.setI
 let zohoFoldersCache=null;
 let zohoFoldersPromise=null;
 let folderCountTimer=null;
-let mailListObserver=null;
-let lastVisibleMailCount=null;
+const pendingCountDeltas=new Map();
 
 async function getZohoFolders(){
   if(zohoFoldersCache) return zohoFoldersCache;
@@ -27,146 +26,74 @@ async function getZohoFolders(){
   }).finally(()=>{zohoFoldersPromise=null;});
   return zohoFoldersPromise;
 }
-
 function cachedFolderId(name){return storeGet(`indomail_folder_id_${name.toLowerCase()}`)||'';}
-
-function getNavByName(name){
-  return [...document.querySelectorAll('.sidebar .nav')].find(button=>{
-    const label=button.textContent.trim().replace(/\s+\d+$/,'').replace(/\s+—$/,'');
-    return label===name;
-  })||null;
-}
-
+function getNavByName(name){return [...document.querySelectorAll('.sidebar .nav')].find(button=>{const label=button.textContent.trim().replace(/\s+\d+$/,'').replace(/\s+—$/,'');return label===name;})||null;}
 function setFolderCount(name,count){
-  const button=getNavByName(name);
-  if(!button) return;
-  const badges=[...button.querySelectorAll('b')];
+  const button=getNavByName(name); if(!button) return;
+  let badges=button.querySelectorAll('b');
   let badge=button.querySelector('.folder-count');
-  if(!badge){
-    badge=badges[0]||document.createElement('b');
-    badge.classList.add('folder-count');
-    badge.setAttribute('aria-label',`${name} mail count`);
-    if(!badge.isConnected) button.appendChild(badge);
-  }
+  if(!badge){badge=badges[0]||document.createElement('b');badge.classList.add('folder-count');badge.setAttribute('aria-label',`${name} mail count`);if(!badge.isConnected)button.appendChild(badge);}
   [...button.querySelectorAll('b')].forEach(other=>{if(other!==badge)other.remove();});
   badge.textContent=Number.isFinite(count)?String(Math.max(0,count)):'—';
 }
-
-function syncActiveFolderCountFromList(){
-  const list=document.querySelector('#mailList');
-  const selected=String(storeGet('indomail_selected_folder')||'Inbox');
-  if(!list||!['Inbox','Starred','Sent','Drafts','Trash'].includes(selected)) return;
-  const hasStatus=!!list.querySelector('.status');
-  const hasEmptyState=!!list.querySelector('.muted');
-  const count=list.querySelectorAll('.mail').length;
-  if(hasStatus) return;
-  if(hasEmptyState && count===0){
-    lastVisibleMailCount=0;
-    setFolderCount(selected,0);
-    return;
-  }
-  if(lastVisibleMailCount!==null && count===lastVisibleMailCount-1 && selected.toLowerCase()!=='trash'){
-    const trashCount=getFolderCount('Trash');
-    if(trashCount!==null) setFolderCount('Trash',trashCount+1);
-  }
-  lastVisibleMailCount=count;
-  setFolderCount(selected,count);
-}
-
-function getFolderCount(name){
-  const button=getNavByName(name);
-  if(!button) return null;
-  const badge=button.querySelector('.folder-count');
-  const value=Number(badge?.textContent);
-  return Number.isFinite(value)?value:null;
-}
-
-function observeMailList(){
-  const list=document.querySelector('#mailList');
-  if(!list) return;
-  if(mailListObserver) mailListObserver.disconnect();
-  mailListObserver=new MutationObserver(()=>syncActiveFolderCountFromList());
-  mailListObserver.observe(list,{childList:true,subtree:true});
-  syncActiveFolderCountFromList();
-}
-
-async function countFolderMessages(accountId,folderId,headers,isStarred=false){
-  if(!accountId||!folderId) return null;
-  let url=`${FOLDER_API}/api/zoho/api/accounts/${encodeURIComponent(accountId)}/messages/view?folderId=${encodeURIComponent(folderId)}&limit=200&sortBy=date&sortorder=false`;
-  if(isStarred) url+='&flaggedMails=true';
-  const r=await fetch(url,{headers});
-  if(!r.ok) return null;
-  const p=await r.json();
-  const messages=Array.isArray(p?.data)?p.data:[];
-  const ids=new Set(messages.map(m=>String(m.messageId||m.id||'')).filter(Boolean));
-  return ids.size||messages.length;
-}
-
+function getFolderCount(name){const button=getNavByName(name);if(!button)return null;const badge=button.querySelector('.folder-count');const value=Number(badge?.textContent);return Number.isFinite(value)?value:null;}
+function adjustFolderCount(name,delta){const current=getFolderCount(name);if(current!==null)setFolderCount(name,current+delta);else pendingCountDeltas.set(name,(pendingCountDeltas.get(name)||0)+delta);}
+async function countFolderMessages(accountId,folderId,headers,isStarred=false){if(!accountId||!folderId)return null;let url=`${FOLDER_API}/api/zoho/api/accounts/${encodeURIComponent(accountId)}/messages/view?folderId=${encodeURIComponent(folderId)}&limit=200&sortBy=date&sortorder=false`;if(isStarred)url+='&flaggedMails=true';const r=await fetch(url,{headers});if(!r.ok)return null;const p=await r.json();return Array.isArray(p?.data)?p.data.length:null;}
 async function refreshFolderCounts(){
   const token=storeGet('indomail_zoho_access_token');
   const accountId=storeGet('indomail_zoho_account_id')||'';
   const domain=storeGet('indomail_zoho_api_domain')||'https://mail.zoho.com';
-  if(!token||!accountId) return;
+  if(!token||!accountId)return;
   try{
     const folders=await getZohoFolders();
     const headers={Authorization:`Zoho-oauthtoken ${token}`,'X-Zoho-Api-Domain':domain,Accept:'application/json'};
     const byName=new Map();
-    folders.forEach(f=>{
-      const name=String(f.folderName||f.name||'').trim();
-      const id=String(f.folderId||f.id||'');
-      if(name&&id) byName.set(name.toLowerCase(),id);
-    });
+    folders.forEach(f=>{const name=String(f.folderName||f.name||'').trim();const id=String(f.folderId||f.id||'');if(name&&id)byName.set(name.toLowerCase(),id);});
     const names=['Inbox','Starred','Sent','Drafts','Trash'];
     await Promise.all(names.map(async name=>{
       const wanted=name.toLowerCase();
-      const folderId=wanted==='starred'
-        ? (cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||byName.get('inbox')||'')
-        : (cachedFolderId(name)||byName.get(wanted)||'');
+      const folderId=wanted==='starred'?(cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||byName.get('inbox')||''):(cachedFolderId(name)||byName.get(wanted)||'');
       if(!folderId){setFolderCount(name,0);return;}
       const count=await countFolderMessages(accountId,folderId,headers,wanted==='starred');
-      if(count!==null) setFolderCount(name,count);
+      if(count!==null){const delta=pendingCountDeltas.get(name)||0;setFolderCount(name,count+delta);pendingCountDeltas.delete(name);}
     }));
-    syncActiveFolderCountFromList();
   }catch(e){console.warn('Folder count refresh failed',e);}
 }
+function applyDeleteDelta(){
+  const selected=String(storeGet('indomail_selected_folder')||'Inbox');
+  const isTrash=selected.toLowerCase()==='trash';
+  if(isTrash){adjustFolderCount('Trash',-1);return;}
+  adjustFolderCount(selected,-1);
+  adjustFolderCount('Trash',1);
+}
+
+document.addEventListener('indomail:folder-counts-refresh',e=>{
+  const type=e.detail?.type;
+  if(type==='move-to-trash') applyDeleteDelta();
+  else if(type==='permanent-delete') adjustFolderCount('Trash',-1);
+});
 
 async function selectZohoFolder(name,button){
   document.querySelectorAll('.sidebar .nav').forEach(n=>n.classList.remove('active'));
   button?.classList.add('active');
-  const head=document.querySelector('.panel-head h2');
-  if(head) head.textContent=name;
-  if(window.innerWidth<=900) document.querySelector('#sidebar')?.classList.remove('open');
-  const folderId=name==='Starred'
-    ? (cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||'')
-    : (cachedFolderId(name)||(zohoFoldersCache?.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase())?.folderId||''));
+  const head=document.querySelector('.panel-head h2');if(head)head.textContent=name;
+  if(window.innerWidth<=900)document.querySelector('#sidebar')?.classList.remove('open');
+  const folderId=name==='Starred'?(cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||''):(cachedFolderId(name)||(zohoFoldersCache?.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase())?.folderId||''));
   storeSet('indomail_selected_folder',name);
-  if(folderId) storeSet('indomail_selected_folder_id',String(folderId));
-  else{localStorage.removeItem('indomail_selected_folder_id');sessionStorage.removeItem('indomail_selected_folder_id');}
-  lastVisibleMailCount=null;
+  if(folderId)storeSet('indomail_selected_folder_id',String(folderId));else{localStorage.removeItem('indomail_selected_folder_id');sessionStorage.removeItem('indomail_selected_folder_id');}
   window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId:String(folderId||'')}}));
   refreshFolderCounts();
 }
-
 function removeLegacyComposeElements(){document.querySelectorAll('#floatingCompose,.indomail-floating-compose').forEach(el=>el.remove());}
-
 function initFolderNavigation(){
   removeLegacyComposeElements();
   const navs=[...document.querySelectorAll('.sidebar .nav')];
   const names={Inbox:'Inbox',Starred:'Starred',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};
-  navs.forEach(button=>{
-    if(button.dataset.folderBound==='1') return;
-    const label=button.textContent.trim().replace(/\s+\d+$/,'').replace(/\s+—$/,'');
-    if(names[label]){
-      button.dataset.folderBound='1';
-      button.addEventListener('click',()=>selectZohoFolder(names[label],button));
-    }
-  });
-  observeMailList();
+  navs.forEach(button=>{if(button.dataset.folderBound==='1')return;const label=button.textContent.trim().replace(/\s+\d+$/,'').replace(/\s+—$/,'');if(names[label]){button.dataset.folderBound='1';button.addEventListener('click',()=>selectZohoFolder(names[label],button));}});
   getZohoFolders().then(()=>refreshFolderCounts()).catch(()=>{});
-  if(folderCountTimer) clearInterval(folderCountTimer);
+  if(folderCountTimer)clearInterval(folderCountTimer);
   folderCountTimer=setInterval(refreshFolderCounts,5000);
 }
-
 window.addEventListener('indomail:logged-in',initFolderNavigation);
 window.addEventListener('indomail:refresh',refreshFolderCounts);
 window.addEventListener('indomail:folder-changed',refreshFolderCounts);
