@@ -117,7 +117,7 @@ function initFolderNavigation(){
   });
   getZohoFolders().then(()=>refreshFolderCounts()).catch(()=>{});
   if(folderCountTimer) clearInterval(folderCountTimer);
-  folderCountTimer=setInterval(refreshFolderCounts,60000);
+  folderCountTimer=setInterval(refreshFolderCounts,5000);
 }
 
 window.addEventListener('indomail:logged-in',initFolderNavigation);
