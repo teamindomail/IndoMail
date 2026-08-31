@@ -92,12 +92,13 @@ function parseZohoReturn(panel) {
 function mountProviderPanel() {
   if (document.querySelector('#providerTest')) return document.querySelector('#providerTest');
   const login = document.querySelector('#loginView');
-  if (!login) return null;
+  const inbox = document.querySelector('#inboxView');
+  if (!login || !inbox) return null;
   const panel = document.createElement('section');
   panel.id = 'providerTest';
   panel.className = 'provider-test hidden';
   panel.innerHTML = `<h2>Mailbox connection test</h2><p class="muted">Connect a provider separately from Google identity sign-in.</p><div class="provider-test-actions"><button type="button" data-provider-connect="gmail">Connect Gmail</button><button type="button" data-provider-connect="zoho">Connect Zoho Mail</button></div><p class="provider-test-status" role="status" aria-live="polite"></p><div class="provider-results"></div>`;
-  login.querySelector('.status')?.after(panel);
+  inbox.querySelector('.mail-panel')?.prepend(panel);
   panel.querySelector('[data-provider-connect="gmail"]').addEventListener('click', () => connectGmail(panel));
   panel.querySelector('[data-provider-connect="zoho"]').addEventListener('click', () => connectZoho(panel));
   return panel;
@@ -108,4 +109,19 @@ window.addEventListener('indomail:logged-in', () => {
   panel?.classList.remove('hidden');
 });
 if (sessionStorage.getItem('indomail_google_id_token')) panel?.classList.remove('hidden');
-if (panel) parseZohoReturn(panel);
+if (sessionStorage.getItem('indomail_zoho_access_token')) panel?.classList.remove('hidden');
+
+const loginZohoButton = document.querySelector('[data-provider="Zoho"]');
+loginZohoButton?.addEventListener('click', () => {
+  if (panel) connectZoho(panel);
+});
+
+if (panel) {
+  const before = sessionStorage.getItem('indomail_zoho_access_token');
+  parseZohoReturn(panel);
+  if (!before && sessionStorage.getItem('indomail_zoho_access_token')) {
+    document.querySelector('#loginView')?.classList.add('hidden');
+    document.querySelector('#inboxView')?.classList.remove('hidden');
+    panel.classList.remove('hidden');
+  }
+}
