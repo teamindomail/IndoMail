@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="IndoMail — a clean, secure email client.">
+  <meta name="theme-color" content="#5b4bdb">
+  <title>IndoMail</title>
+  <link rel="stylesheet" href="./css/base.css?v=4">
+  <link rel="stylesheet" href="./css/login.css?v=4">
+  <link rel="stylesheet" href="./css/inbox.css?v=4">
+  <link rel="stylesheet" href="./css/compose.css?v=4">
+  <link rel="stylesheet" href="./css/password.css?v=4">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="login-screen" id="loginView" aria-labelledby="brandTitle">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="9" y="15" width="46" height="34" rx="8" stroke="currentColor" stroke-width="4"/>
+          <path d="M12 20L32 36L52 20" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h1 id="brandTitle">IndoMail</h1>
+      <p class="tagline">Simple. Secure. Yours.</p>
+      <div class="provider-actions" aria-label="Provider login">
+        <button class="provider google" type="button" data-provider="Google"><span>G</span> Login with Google</button>
+        <button class="provider zoho" type="button" data-provider="Zoho"><span>✦</span> Login with Zoho</button>
+      </div>
+      <div class="divider"><span>or</span></div>
+      <form class="login-form" id="loginForm">
+        <label>Email address<input id="email" name="email" type="email" autocomplete="username" placeholder="you@example.com" required></label>
+        <div class="password-field">
+          <label>Password<input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" minlength="8" required></label>
+          <div class="password-toggle"><input id="showPassword" type="checkbox"><label for="showPassword">Show password</label></div>
+        </div>
+        <button class="primary" type="submit">Login</button>
+      </form>
+      <p class="status" id="loginStatus" role="status" aria-live="polite"></p>
+      <p class="muted">Provider authentication will use secure official flows. IndoMail will not store your raw Google or Zoho password.</p>
+    </section>
+
+    <section class="inbox-screen hidden" id="inboxView" aria-label="IndoMail inbox">
+      <header class="topbar">
+        <button class="icon-btn" id="menuBtn" type="button" aria-label="Open menu">☰</button>
+        <div class="wordmark">IndoMail</div>
+        <div class="top-actions"><button class="icon-btn" id="searchBtn" type="button" aria-label="Search">⌕</button><button class="avatar" id="accountBtn" type="button" aria-label="Account">Y</button></div>
+      </header>
+      <div class="content">
+        <aside class="sidebar" id="sidebar">
+          <button class="compose" type="button" id="composeBtn">＋ Compose</button>
+          <button class="nav active" type="button">Inbox <b>3</b></button>
+          <button class="nav" type="button">Starred</button>
+          <button class="nav" type="button">Sent</button>
+          <button class="nav" type="button">Drafts</button>
+          <button class="nav" type="button">Trash</button>
+          <hr><button class="nav" type="button">Settings</button>
+        </aside>
+        <section class="mail-panel">
+          <div class="panel-head"><div><h2>Inbox</h2><span>3 unread</span></div><button class="refresh" id="refreshBtn" type="button" aria-label="Refresh inbox">↻</button></div>
+          <div class="mail-list" id="mailList"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal hidden" id="composeModal" role="dialog" aria-modal="true" aria-labelledby="composeTitle">
+    <form class="compose-card" id="composeForm">
+      <div class="compose-head"><h2 id="composeTitle">New message</h2><button type="button" class="icon-btn" id="composeClose" aria-label="Close">×</button></div>
+      <label>To<input id="composeTo" type="email" required placeholder="recipient@example.com"></label>
+      <label>Subject<input id="composeSubject" type="text" placeholder="Subject"></label>
+      <label>Message<textarea id="composeBody" rows="8" placeholder="Write your message..."></textarea></label>
+      <div class="compose-actions"><button type="button" class="secondary" id="composeCancel">Cancel</button><button class="primary" type="submit">Send</button></div>
+    </form>
+  </div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script type="module" src="./js/login.js?v=4"></script>
+  <script type="module" src="./js/google-login.js?v=1"></script>
+  <script type="module" src="./js/password.js?v=4"></script>
+  <script type="module" src="./js/inbox.js?v=4"></script>
+  <script type="module" src="./js/compose.js?v=4"></script>
+  <script type="module" src="./js/app.js?v=1"></script>
+</body>
+</html>
