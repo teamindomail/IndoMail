@@ -6,16 +6,16 @@
   <meta name="theme-color" content="#050916">
   <meta name="description" content="IndoMail — futuristic, secure and intelligent email client.">
   <title>IndoMail</title>
-  <link rel="stylesheet" href="./css/base.css?v=20">
-  <link rel="stylesheet" href="./css/login.css?v=20">
-  <link rel="stylesheet" href="./css/inbox.css?v=20">
-  <link rel="stylesheet" href="./css/mobile-fix.css?v=20">
-  <link rel="stylesheet" href="./css/compose.css?v=20">
-  <link rel="stylesheet" href="./css/password.css?v=20">
-  <link rel="stylesheet" href="./css/premium-theme.css?v=20">
-  <link rel="stylesheet" href="./css/futuristic-v2.css?v=20">
-  <link rel="stylesheet" href="./css/premium-demo-final.css?v=20">
-  <link rel="stylesheet" href="./css/responsive-pixel-fix.css?v=20">
+  <link rel="stylesheet" href="./css/base.css?v=21">
+  <link rel="stylesheet" href="./css/login.css?v=21">
+  <link rel="stylesheet" href="./css/inbox.css?v=21">
+  <link rel="stylesheet" href="./css/mobile-fix.css?v=21">
+  <link rel="stylesheet" href="./css/compose.css?v=21">
+  <link rel="stylesheet" href="./css/password.css?v=21">
+  <link rel="stylesheet" href="./css/premium-theme.css?v=21">
+  <link rel="stylesheet" href="./css/futuristic-v2.css?v=21">
+  <link rel="stylesheet" href="./css/premium-demo-final.css?v=21">
+  <link rel="stylesheet" href="./css/responsive-pixel-fix.css?v=21">
 </head>
 <body>
   <main class="app-shell">
@@ -23,100 +23,29 @@
       <div class="brand-orbit" aria-hidden="true"><div class="brand-mark"><svg viewBox="0 0 64 64" width="42" height="42" fill="none"><rect x="9" y="15" width="46" height="34" rx="8" stroke="currentColor" stroke-width="3"/><path d="M12 20L32 36L52 20" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
       <h1 id="brandTitle"><span>INDO</span>MAIL</h1>
       <p class="tagline">Futuristic • Secure • Intelligent</p>
-      <div class="provider-actions">
-        <button class="provider google" type="button" data-provider="Google"><span>G</span>Continue with Google</button>
-        <button class="provider zoho" type="button" data-provider="Zoho"><span>✦</span>Continue with Zoho</button>
-      </div>
+      <div class="provider-actions"><button class="provider google" type="button" data-provider="Google"><span>G</span>Continue with Google</button><button class="provider zoho" type="button" data-provider="Zoho"><span>✦</span>Continue with Zoho</button></div>
       <div class="divider"><span>or sign in with email</span></div>
-      <form class="login-form" id="loginForm">
-        <label>Email address<input id="email" name="email" type="email" autocomplete="username" placeholder="you@example.com" required></label>
-        <div class="password-field"><label>Password<input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" minlength="8" required></label><div class="password-toggle"><input id="showPassword" type="checkbox"><label for="showPassword">Show password</label></div></div>
-        <button class="primary" type="submit">Sign In</button>
-      </form>
-      <p class="status" id="loginStatus" role="status" aria-live="polite"></p>
-      <p class="security-note">Your provider password is never stored by IndoMail.</p>
+      <form class="login-form" id="loginForm"><label>Email address<input id="email" name="email" type="email" autocomplete="username" placeholder="you@example.com" required></label><div class="password-field"><label>Password<input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" minlength="8" required></label><div class="password-toggle"><input id="showPassword" type="checkbox"><label for="showPassword">Show password</label></div></div><button class="primary" type="submit">Sign In</button></form>
+      <p class="status" id="loginStatus" role="status" aria-live="polite"></p><p class="security-note">Your provider password is never stored by IndoMail.</p>
     </section>
 
     <section class="inbox-screen hidden" id="inboxView" aria-label="IndoMail mailbox">
-      <header class="topbar">
-        <button class="icon-btn" id="menuBtn" type="button" aria-label="Open mailbox navigation">☰</button>
-        <div class="top-brand"><span class="top-brand-icon">✦</span><span>IndoMail</span></div>
-        <div class="top-search"><button id="searchBtn" type="button" class="search-trigger" aria-label="Search mail">⌕ <span>Search in mails</span></button></div>
-        <div class="top-actions"><button class="icon-btn" id="refreshBtn" type="button" aria-label="Refresh inbox">↻</button><button class="avatar" id="accountBtn" type="button" aria-label="Account">Y</button></div>
-      </header>
-
+      <header class="topbar"><button class="icon-btn" id="menuBtn" type="button" aria-label="Open mailbox navigation">☰</button><div class="top-brand"><span class="top-brand-icon">✦</span><span>IndoMail</span></div><div class="top-search"><button id="searchBtn" type="button" class="search-trigger" aria-label="Search mail">⌕ <span>Search in mails</span></button></div><div class="top-actions"><button class="icon-btn" id="refreshBtn" type="button" aria-label="Refresh inbox">↻</button><button class="avatar" id="accountBtn" type="button" aria-label="Account">Y</button></div></header>
       <div class="content">
         <aside class="sidebar" id="sidebar" aria-label="Mailbox navigation">
-          <button class="floating-compose" id="composeBtn" type="button"><span>⌁</span><strong>Compose</strong></button>
-          <span class="sidebar-label">MAILBOX</span>
-          <button class="nav active" type="button" data-folder="Inbox">◉ <span>Inbox</span><b>0</b></button>
-          <button class="nav" type="button" data-folder="Starred">★ <span>Starred</span></button>
-          <button class="nav" type="button" data-folder="Sent">↗ <span>Sent</span></button>
-          <button class="nav" type="button" data-folder="Drafts">◴ <span>Drafts</span><b>0</b></button>
-          <button class="nav" type="button">◇ <span>Important</span></button>
-          <button class="nav" type="button">◷ <span>Snoozed</span></button>
-          <button class="nav" type="button">⊘ <span>Spam</span><b>0</b></button>
-          <button class="nav" type="button" data-folder="Trash">⌫ <span>Trash</span></button>
-          <div class="sidebar-rule"></div>
-          <span class="sidebar-label">FOLDERS</span>
-          <button class="nav" type="button">▱ <span>Work</span></button>
-          <button class="nav" type="button">▱ <span>Personal</span></button>
-          <button class="nav" type="button">▱ <span>Projects</span></button>
-          <button class="nav" type="button" id="sidebarSettings">⚙ <span>Settings</span></button>
-          <div class="sidebar-footer"><div class="sync-dot"></div><span>Zoho connection active</span></div>
+          <button class="floating-compose" id="composeBtn" type="button"><span>⌁</span><strong>Compose</strong></button><span class="sidebar-label">MAILBOX</span>
+          <button class="nav active" type="button" data-folder="Inbox">◉ <span>Inbox</span><b>0</b></button><button class="nav" type="button" data-folder="Starred">★ <span>Starred</span></button><button class="nav" type="button" data-folder="Sent">↗ <span>Sent</span></button><button class="nav" type="button" data-folder="Drafts">◴ <span>Drafts</span><b>0</b></button><button class="nav" type="button">◇ <span>Important</span></button><button class="nav" type="button">◷ <span>Snoozed</span></button><button class="nav" type="button">⊘ <span>Spam</span><b>0</b></button><button class="nav" type="button" data-folder="Trash">⌫ <span>Trash</span></button>
+          <div class="sidebar-rule"></div><span class="sidebar-label">FOLDERS</span><button class="nav" type="button">▱ <span>Work</span></button><button class="nav" type="button">▱ <span>Personal</span></button><button class="nav" type="button">▱ <span>Projects</span></button><button class="nav" type="button" id="sidebarSettings">⚙ <span>Settings</span></button>
+          <div class="sidebar-footer"><div class="sync-dot"></div><span>Provider connection active</span></div>
         </aside>
-
-        <section class="mail-panel" aria-label="Email list">
-          <div class="panel-head"><div><h2 id="panelTitle">Inbox</h2><span id="panelMeta">0 unread</span></div><div class="panel-actions"><button class="mini-icon" type="button" aria-label="Select mail">□</button><button class="mini-icon" type="button" aria-label="More actions">⋮</button></div></div>
-          <div class="mail-list" id="mailList"></div>
-        </section>
-
-        <section class="reading-pane" id="readingPane" aria-label="Selected email">
-          <div class="reading-toolbar"><button type="button" aria-label="Back">←</button><button type="button" aria-label="Archive">□</button><button type="button" aria-label="Move">⇩</button><button type="button" aria-label="Snooze">◷</button><span class="spacer"></span><button type="button" aria-label="More">⋮</button></div>
-          <div class="reading-title"><div class="reading-chip">Inbox</div><h2 data-read-title>Welcome to IndoMail!</h2><div class="reading-meta" data-read-meta>Select an email from your inbox</div></div>
-          <div class="reading-body" data-read-body><div class="welcome-art"><div class="welcome-logo"></div></div><h3>Hi Yashwanth,</h3><p>Welcome to IndoMail! We're excited to have you on board. IndoMail is designed to make your email experience secure, fast and efficient.</p><p>Explore the features and boost your productivity with a clean, focused mail workspace.</p></div>
-          <div class="reading-cta"><button type="button" data-read-star>☆ Star</button><button type="button" class="primary" data-read-reply>↩ Reply</button><button type="button">↗ Forward</button></div>
-        </section>
-
-        <aside class="profile-rail" aria-label="Account overview">
-          <div class="profile-card">
-            <div class="profile-identity"><div class="profile-avatar">Y</div><div class="profile-copy"><strong class="profile-name">Yashwanth P</strong><span class="profile-email">yashwanth@zohomail.in</span><span class="profile-online"><i></i> Online</span></div></div>
-            <div class="rail-label">ACCOUNT</div>
-            <button class="rail-row" type="button" data-account-card><span class="rail-icon">♙</span><span class="rail-copy"><strong>My Account</strong><small>View and update personal information</small></span><span>›</span></button>
-            <button class="rail-row" type="button" data-account-storage><span class="rail-icon green">▣</span><span class="rail-copy"><strong>Storage</strong><small>Manage mailbox storage and limits</small></span><span>›</span></button>
-            <button class="rail-row" type="button" data-account-security><span class="rail-icon amber">◈</span><span class="rail-copy"><strong>Security</strong><small>Manage password and security settings</small></span><span>›</span></button>
-            <button class="rail-row" type="button"><span class="rail-icon cyan">▥</span><span class="rail-copy"><strong>Connected Devices</strong><small>View signed-in devices</small></span><span>›</span></button>
-            <button class="rail-row" type="button"><span class="rail-icon rose">♧</span><span class="rail-copy"><strong>Notifications</strong><small>Manage email notifications and alerts</small></span><span>›</span></button>
-            <button class="rail-logout" type="button" id="railLogout">↪ Sign Out</button>
-          </div>
-        </aside>
+        <section class="mail-panel" aria-label="Email list"><div class="panel-head"><div><h2 id="panelTitle">Inbox</h2><span id="panelMeta">0 unread</span></div><div class="panel-actions"><button class="mini-icon" type="button" aria-label="Select mail">□</button><button class="mini-icon" type="button" aria-label="More actions">⋮</button></div></div><div class="mail-list" id="mailList"></div></section>
+        <section class="reading-pane" id="readingPane" aria-label="Selected email"><div class="reading-toolbar"><button type="button" aria-label="Back">←</button><button type="button" aria-label="Archive">□</button><button type="button" aria-label="Move">⇩</button><button type="button" aria-label="Snooze">◷</button><span class="spacer"></span><button type="button" aria-label="More">⋮</button></div><div class="reading-title"><div class="reading-chip">Inbox</div><h2 data-read-title>Welcome to IndoMail!</h2><div class="reading-meta" data-read-meta>Select an email from your inbox</div></div><div class="reading-body" data-read-body><div class="welcome-art"><div class="welcome-logo"></div></div><h3>Hi Yashwanth,</h3><p>Welcome to IndoMail! We're excited to have you on board. IndoMail is designed to make your email experience secure, fast and efficient.</p><p>Explore the features and boost your productivity with a clean, focused mail workspace.</p></div><div class="reading-cta"><button type="button" data-read-star>☆ Star</button><button type="button" class="primary" data-read-reply>↩ Reply</button><button type="button">↗ Forward</button></div></section>
+        <aside class="profile-rail" aria-label="Account overview"><div class="profile-card"><div class="profile-identity"><div class="profile-avatar">Y</div><div class="profile-copy"><strong class="profile-name">IndoMail User</strong><span class="profile-email">Connected mailbox</span><span class="profile-online"><i></i> Online</span></div></div><div class="rail-label">ACCOUNT</div><button class="rail-row" type="button" data-account-card><span class="rail-icon">♙</span><span class="rail-copy"><strong>My Account</strong><small>View and update personal information</small></span><span>›</span></button><button class="rail-row" type="button" data-account-storage><span class="rail-icon green">▣</span><span class="rail-copy"><strong>Storage</strong><small>Manage mailbox storage and limits</small></span><span>›</span></button><button class="rail-row" type="button" data-account-security><span class="rail-icon amber">◈</span><span class="rail-copy"><strong>Security</strong><small>Manage password and security settings</small></span><span>›</span></button><button class="rail-row" type="button"><span class="rail-icon cyan">▥</span><span class="rail-copy"><strong>Connected Devices</strong><small>View signed-in devices</small></span><span>›</span></button><button class="rail-row" type="button"><span class="rail-icon rose">♧</span><span class="rail-copy"><strong>Notifications</strong><small>Manage email notifications and alerts</small></span><span>›</span></button><button class="rail-logout" type="button" id="railLogout">↪ Sign Out</button></div></aside>
       </div>
     </section>
-
-    <div class="modal hidden" id="composeModal" role="dialog" aria-modal="true" aria-labelledby="composeTitle">
-      <form class="compose-card" id="composeForm">
-        <div class="compose-head"><div><span class="compose-kicker">NEW MESSAGE</span><h2 id="composeTitle">Compose email</h2></div><button type="button" class="icon-btn" id="composeClose" aria-label="Close compose">×</button></div>
-        <label>To<input id="composeTo" type="email" required placeholder="recipient@example.com"></label>
-        <label>Subject<input id="composeSubject" type="text" placeholder="Subject"></label>
-        <label>Message<textarea id="composeBody" rows="9" placeholder="Write your message..."></textarea></label>
-        <div class="compose-actions"><button type="button" class="secondary" id="composeCancel">Save draft</button><button class="primary" type="submit">Send email ↗</button></div>
-      </form>
-    </div>
+    <div class="modal hidden" id="composeModal" role="dialog" aria-modal="true" aria-labelledby="composeTitle"><form class="compose-card" id="composeForm"><div class="compose-head"><div><span class="compose-kicker">NEW MESSAGE</span><h2 id="composeTitle">Compose email</h2></div><button type="button" class="icon-btn" id="composeClose" aria-label="Close compose">×</button></div><label>To<input id="composeTo" type="email" required placeholder="recipient@example.com"></label><label>Subject<input id="composeSubject" type="text" placeholder="Subject"></label><label>Message<textarea id="composeBody" rows="9" placeholder="Write your message..."></textarea></label><div class="compose-actions"><button type="button" class="secondary" id="composeCancel">Save draft</button><button class="primary" type="submit">Send email ↗</button></div></form></div>
   </main>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script type="module" src="./js/login.js?v=20"></script>
-  <script type="module" src="./js/google-login.js?v=20"></script>
-  <script type="module" src="./js/password.js?v=20"></script>
-  <script type="module" src="./js/inbox.js?v=20"></script>
-  <script type="module" src="./js/premium-desktop-ui.js?v=20"></script>
-  <script type="module" src="./js/compose.js?v=20"></script>
-  <script type="module" src="./js/providers.js?v=20"></script>
-  <script type="module" src="./js/folders.js?v=20"></script>
-  <script type="module" src="./js/zoho-auth-recovery.js?v=20"></script>
-  <script type="module" src="./js/search.js?v=20"></script>
-  <script type="module" src="./js/draft-edit.js?v=20"></script>
-  <script type="module" src="./js/account-settings.js?v=20"></script>
-  <script type="module" src="./js/profile-menu-fix.js?v=20"></script>
-  <script type="module" src="./js/profile-redesign.js?v=20"></script>
+  <script type="module" src="./js/login.js?v=21"></script><script type="module" src="./js/google-login.js?v=21"></script><script type="module" src="./js/password.js?v=21"></script><script type="module" src="./js/inbox.js?v=21"></script><script type="module" src="./js/premium-desktop-ui.js?v=21"></script><script type="module" src="./js/compose.js?v=21"></script><script type="module" src="./js/providers.js?v=21"></script><script type="module" src="./js/folders.js?v=21"></script><script type="module" src="./js/zoho-auth-recovery.js?v=21"></script><script type="module" src="./js/search.js?v=21"></script><script type="module" src="./js/draft-edit.js?v=21"></script><script type="module" src="./js/account-settings.js?v=21"></script><script type="module" src="./js/profile-menu-fix.js?v=21"></script><script type="module" src="./js/profile-redesign.js?v=21"></script><script type="module" src="./js/ui-finalizer.js?v=21"></script>
 </body>
 </html>
