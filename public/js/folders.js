@@ -38,13 +38,15 @@ function getNavByName(name){
 function setFolderCount(name,count){
   const button=getNavByName(name);
   if(!button) return;
+  let badges=button.querySelectorAll('b');
   let badge=button.querySelector('.folder-count');
   if(!badge){
-    badge=document.createElement('b');
-    badge.className='folder-count';
+    badge=badges[0]||document.createElement('b');
+    badge.classList.add('folder-count');
     badge.setAttribute('aria-label',`${name} mail count`);
-    button.appendChild(badge);
+    if(!badge.isConnected) button.appendChild(badge);
   }
+  [...button.querySelectorAll('b')].forEach(other=>{if(other!==badge)other.remove();});
   badge.textContent=Number.isFinite(count)?String(count):'—';
 }
 
