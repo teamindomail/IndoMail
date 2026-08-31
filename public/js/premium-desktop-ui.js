@@ -11,7 +11,12 @@
   const reply = pane.querySelector('[data-read-reply]');
   let active = null;
 
-  const esc = (v='') => String(v).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\\"':'&quot;',"'":'&#39;'}[c]));
+  const esc = (v='') => String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
   const text = el => el?.textContent?.trim() || '';
 
   function paint(row) {
@@ -26,8 +31,8 @@
     const avatar = text(row.querySelector('.mail-avatar')) || sender.slice(0,1);
     title.textContent = subject;
     meta.textContent = `From ${sender} • ${time || 'Today'}`;
-    body.innerHTML = `<div class="inline-avatar">${esc(avatar.slice(0,2))}</div><h3>Welcome to IndoMail!</h3><p>${esc(preview || 'Your message preview will appear here. Select another message from the inbox to read it in this premium three-column view.')}</p><p>IndoMail is designed around a secure, focused mail workflow with fast navigation, rich message previews and a modern workspace.</p>`;
-    star.textContent = row.querySelector('.star')?.textContent?.trim() === '★' ? '★' : '☆';
+    body.innerHTML = `<div class="inline-avatar">${esc(avatar.slice(0,2))}</div><h3>${esc(subject)}</h3><p>${esc(preview || 'Your message preview will appear here. Select another message from the inbox to read it in this premium three-column view.')}</p><p>IndoMail is designed around a secure, focused mail workflow with fast navigation, rich message previews and a modern workspace.</p>`;
+    star.textContent = row.querySelector('.star')?.textContent?.trim() === '★' ? '★ Star' : '☆ Star';
   }
 
   // Capture before inbox.js bubble listeners so desktop clicks stay in the reading pane.
