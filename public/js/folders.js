@@ -19,16 +19,19 @@ async function selectZohoFolder(name,button){
   const head=document.querySelector('.panel-head h2');if(head)head.textContent=name;
   const status=document.querySelector('.panel-head span');if(status)status.textContent='Loading…';
   if(window.innerWidth<=900)document.querySelector('#sidebar')?.classList.remove('open');
-  if(name==='Starred'){
-    const inboxId=cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||'';
-    storeSet('indomail_selected_folder','Starred');
-    if(inboxId)storeSet('indomail_selected_folder_id',inboxId);else{localStorage.removeItem('indomail_selected_folder_id');sessionStorage.removeItem('indomail_selected_folder_id');}
-    window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name:'Starred',folderId:inboxId}}));
-    return;
-  }
-  let folderId=cachedFolderId(name);if(!folderId&&zohoFoldersCache){const folder=zohoFoldersCache.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase());folderId=String(folder?.folderId||folder?.id||'');}
-  if(folderId){storeSet('indomail_selected_folder',name);storeSet('indomail_selected_folder_id',folderId);if(name==='Inbox')storeSet('indomail_zoho_inbox_folder_id',folderId);window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId}}));return;}
-  try{const folders=await getZohoFolders();const folder=folders.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase());if(!folder)throw new Error(`Zoho ${name} folder not found`);folderId=String(folder.folderId||folder.id||'');if(!folderId)throw new Error(`Zoho ${name} folder ID not found`);storeSet('indomail_selected_folder',name);storeSet('indomail_selected_folder_id',folderId);if(name==='Inbox')storeSet('indomail_zoho_inbox_folder_id',folderId);window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId}}));}catch(e){const list=document.querySelector('#mailList');if(list)list.innerHTML=`<div class="status" style="padding:24px 10px">${String(e.message).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}</div>`;}
+  const folderId=name==='Starred' ? (cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||'') : (cachedFolderId(name) || (zohoFoldersCache?.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase())?.folderId||''));
+  storeSet('indomail_selected_folder',name);
+  if(folderId)storeSet('indomail_selected_folder_id',String(folderId));else{localStorage.removeItem('indomail_selected_folder_id');sessionStorage.removeItem('indomail_selected_folder_id');}
+  window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId:String(folderId||'')}}));
 }
-function initFolderNavigation(){const navs=[...document.querySelectorAll('.sidebar .nav')];const names={Inbox:'Inbox',Starred:'Starred',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};navs.forEach(button=>{if(button.dataset.folderBound==='1')return;const label=button.textContent.trim().replace(/\s+\d+$/,'');if(names[label]){button.dataset.folderBound='1';button.addEventListener('click',()=>selectZohoFolder(names[label],button));}});getZohoFolders().catch(()=>{});}
+function mountFloatingCompose(){
+  let button=document.querySelector('#floatingCompose');
+  if(button)return;
+  button=document.createElement('button');button.id='floatingCompose';button.type='button';button.setAttribute('aria-label','Compose new mail');button.textContent='＋ Compose';
+  button.addEventListener('click',()=>document.querySelector('#composeBtn')?.click());
+  document.body.appendChild(button);
+  const style=document.createElement('style');style.id='floating-compose-style';style.textContent=`#floatingCompose{position:fixed;right:28px;bottom:28px;z-index:80;border:0;border-radius:14px;padding:12px 18px;background:#5b4bdb;color:#fff;font-weight:700;box-shadow:0 12px 28px rgba(20,30,60,.2);cursor:pointer}#floatingCompose:hover{transform:translateY(-1px)}@media(max-width:900px){#floatingCompose{right:18px;bottom:18px;padding:11px 15px;font-size:13px}}`;document.head.appendChild(style);
+}
+function removeSidebarCompose(){const compose=document.querySelector('#sidebar #composeBtn');if(compose)compose.style.display='none';mountFloatingCompose();}
+function initFolderNavigation(){const navs=[...document.querySelectorAll('.sidebar .nav')];const names={Inbox:'Inbox',Starred:'Starred',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};navs.forEach(button=>{if(button.dataset.folderBound==='1')return;const label=button.textContent.trim().replace(/\s+\d+$/,'');if(names[label]){button.dataset.folderBound='1';button.addEventListener('click',()=>selectZohoFolder(names[label],button));}});removeSidebarCompose();getZohoFolders().catch(()=>{});}
 window.addEventListener('indomail:logged-in',initFolderNavigation);window.addEventListener('load',initFolderNavigation);initFolderNavigation();
