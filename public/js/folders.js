@@ -17,14 +17,17 @@ function cachedFolderId(name){return storeGet(`indomail_folder_id_${name.toLower
 async function selectZohoFolder(name,button){
   document.querySelectorAll('.sidebar .nav').forEach(n=>n.classList.remove('active'));button?.classList.add('active');
   const head=document.querySelector('.panel-head h2');if(head)head.textContent=name;
-  const status=document.querySelector('.panel-head span');if(status)status.textContent='Loading…';
   if(window.innerWidth<=900)document.querySelector('#sidebar')?.classList.remove('open');
   const folderId=name==='Starred' ? (cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||'') : (cachedFolderId(name) || (zohoFoldersCache?.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase())?.folderId||''));
   storeSet('indomail_selected_folder',name);
   if(folderId)storeSet('indomail_selected_folder_id',String(folderId));else{localStorage.removeItem('indomail_selected_folder_id');sessionStorage.removeItem('indomail_selected_folder_id');}
   window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId:String(folderId||'')}}));
 }
+function removeLegacyComposeElements(){
+  document.querySelectorAll('#floatingCompose,.indomail-floating-compose').forEach(el=>el.remove());
+}
 function initFolderNavigation(){
+  removeLegacyComposeElements();
   const navs=[...document.querySelectorAll('.sidebar .nav')];
   const names={Inbox:'Inbox',Starred:'Starred',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};
   navs.forEach(button=>{
