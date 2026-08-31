@@ -1,148 +1,112 @@
+/* IndoMail stable folder navigation/count synchronization. */
 const FOLDER_API='https://indomail-production.up.railway.app';
-const storeGet=(key)=>localStorage.getItem(key)||sessionStorage.getItem(key);
-const storeSet=(key,value)=>{localStorage.setItem(key,value);sessionStorage.setItem(key,value);};
-
-let zohoFoldersCache=null;
-let zohoFoldersPromise=null;
-let folderCountTimer=null;
-let refreshTimer=null;
-let listObserver=null;
-let refreshing=false;
+const storeGet=k=>localStorage.getItem(k)||sessionStorage.getItem(k);
+const storeSet=(k,v)=>{localStorage.setItem(k,v);sessionStorage.setItem(k,v)};
+const storeClear=k=>{localStorage.removeItem(k);sessionStorage.removeItem(k)};
+let foldersCache=null;
+let foldersPromise=null;
+let countTimer=null;
+let countBusy=false;
+let countQueued=false;
 const optimistic=new Map();
-const lastServerCounts=new Map();
+
+function selectedFolder(){return String(storeGet('indomail_selected_folder')||'Inbox')}
+function cachedFolderId(name){return storeGet(`indomail_folder_id_${String(name).toLowerCase()}`)||''}
+function getNavByName(name){
+  return [...document.querySelectorAll('.sidebar .nav')].find(btn=>btn.textContent.trim().replace(/\s+\d+$/,'')===name)||null;
+}
+function setFolderCount(name,count){
+  const btn=getNavByName(name); if(!btn)return;
+  let badge=btn.querySelector('.folder-count');
+  if(!badge){badge=btn.querySelector('b')||document.createElement('b');badge.classList.add('folder-count');btn.appendChild(badge)}
+  badge.textContent=Number.isFinite(Number(count))?String(Math.max(0,Math.floor(Number(count)))):'—';
+}
+function adjustFolderCount(name,delta){
+  const btn=getNavByName(name); if(!btn){optimistic.set(name,(optimistic.get(name)||0)+delta);return}
+  const badge=btn.querySelector('.folder-count')||btn.querySelector('b');
+  const current=Number(badge?.textContent);
+  if(Number.isFinite(current))setFolderCount(name,current+delta);else optimistic.set(name,(optimistic.get(name)||0)+delta);
+}
 
 async function getZohoFolders(){
-  if(zohoFoldersCache)return zohoFoldersCache;
+  if(foldersCache)return foldersCache;
+  if(foldersPromise)return foldersPromise;
   const token=storeGet('indomail_zoho_access_token');
   const accountId=storeGet('indomail_zoho_account_id');
   const domain=storeGet('indomail_zoho_api_domain')||'https://mail.zoho.com';
-  if(!token||!accountId)throw new Error('Connect Zoho Mail first.');
-  if(zohoFoldersPromise)return zohoFoldersPromise;
-  zohoFoldersPromise=fetch(`${FOLDER_API}/api/zoho/api/accounts/${encodeURIComponent(accountId)}/folders`,{headers:{Authorization:`Zoho-oauthtoken ${token}`,'X-Zoho-Api-Domain':domain,Accept:'application/json'}})
-    .then(async r=>{if(!r.ok)throw new Error(`Zoho folders ${r.status}`);const p=await r.json();zohoFoldersCache=p?.data||[];zohoFoldersCache.forEach(f=>{const n=String(f.folderName||f.name||'').trim();const id=String(f.folderId||f.id||'');if(n&&id)storeSet(`indomail_folder_id_${n.toLowerCase()}`,id);});return zohoFoldersCache;})
-    .finally(()=>{zohoFoldersPromise=null;});
-  return zohoFoldersPromise;
+  if(!token||!accountId)return [];
+  const headers={Accept:'application/json',Authorization:`Zoho-oauthtoken ${token}`,'X-Zoho-Api-Domain':domain};
+  foldersPromise=fetch(`${FOLDER_API}/api/zoho/api/accounts/${encodeURIComponent(accountId)}/folders`,{headers})
+    .then(async r=>{if(!r.ok)throw new Error(`Zoho folders ${r.status}`);const p=await r.json();foldersCache=Array.isArray(p?.data)?p.data:[];foldersCache.forEach(f=>{const n=String(f.folderName||f.name||'').trim(),id=String(f.folderId||f.id||'');if(n&&id)storeSet(`indomail_folder_id_${n.toLowerCase()}`,id)});return foldersCache})
+    .catch(e=>{console.warn('Folder list load failed',e);return []})
+    .finally(()=>{foldersPromise=null});
+  return foldersPromise;
 }
-
-function cachedFolderId(name){return storeGet(`indomail_folder_id_${name.toLowerCase()}`)||'';}
-function selectedFolder(){return String(storeGet('indomail_selected_folder')||'Inbox');}
-function getNavByName(name){return [...document.querySelectorAll('.sidebar .nav')].find(button=>{const label=button.textContent.trim().replace(/\s+\d+$/,'').replace(/\s+—$/,'');return label===name;})||null;}
-function setFolderCount(name,count){const button=getNavByName(name);if(!button)return;let badges=button.querySelectorAll('b');let badge=button.querySelector('.folder-count');if(!badge){badge=badges[0]||document.createElement('b');badge.classList.add('folder-count');badge.setAttribute('aria-label',`${name} mail count`);if(!badge.isConnected)button.appendChild(badge);}[...button.querySelectorAll('b')].forEach(other=>{if(other!==badge)other.remove();});badge.textContent=Number.isFinite(count)?String(Math.max(0,Math.floor(count))):'—';}
-function getFolderCount(name){const button=getNavByName(name);if(!button)return null;const value=Number(button.querySelector('.folder-count')?.textContent);return Number.isFinite(value)?Math.max(0,value):null;}
-function adjustFolderCount(name,delta){const current=getFolderCount(name);if(current!==null)setFolderCount(name,current+delta);else optimistic.set(name,(optimistic.get(name)||0)+delta);}
-function renderedListCount(){const list=document.querySelector('#mailList');return list?list.querySelectorAll('.mail').length:null;}
-function syncActiveCountFromList(){const list=document.querySelector('#mailList');if(!list)return;setFolderCount(selectedFolder(),list.querySelectorAll('.mail').length);}
-
-async function countFolderMessages(accountId,folderId,headers,isStarred=false){
+function folderIdFrom(name){
+  const wanted=String(name).toLowerCase();
+  if(wanted==='starred')return cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||'';
+  return cachedFolderId(name)||(foldersCache||[]).find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===wanted)?.folderId||'';
+}
+async function countFolder(accountId,folderId,headers,starred=false){
   if(!accountId||!folderId)return null;
   let url=`${FOLDER_API}/api/zoho/api/accounts/${encodeURIComponent(accountId)}/messages/view?folderId=${encodeURIComponent(folderId)}&limit=200&sortBy=date&sortorder=false`;
-  if(isStarred)url+='&flaggedMails=true';
-  const r=await fetch(url,{headers});
-  if(!r.ok)return null;
-  const p=await r.json();
-  return Array.isArray(p?.data)?p.data.length:null;
+  if(starred)url+='&flaggedMails=true';
+  try{const r=await fetch(url,{headers});if(!r.ok)return null;const p=await r.json();return Array.isArray(p?.data)?p.data.length:null}catch{return null}
 }
-
 async function refreshFolderCounts(){
-  if(refreshing)return;
+  if(countBusy){countQueued=true;return}
   const token=storeGet('indomail_zoho_access_token');
   const accountId=storeGet('indomail_zoho_account_id')||'';
   const domain=storeGet('indomail_zoho_api_domain')||'https://mail.zoho.com';
   if(!token||!accountId)return;
-  refreshing=true;
+  countBusy=true;countQueued=false;
   try{
     const folders=await getZohoFolders();
-    const headers={Authorization:`Zoho-oauthtoken ${token}`,'X-Zoho-Api-Domain':domain,Accept:'application/json'};
-    const byName=new Map();
-    folders.forEach(f=>{const n=String(f.folderName||f.name||'').trim().toLowerCase();const id=String(f.folderId||f.id||'');if(n&&id)byName.set(n,id);});
-    const active=selectedFolder().toLowerCase();
-    let activeChanged=false;
+    const byName=new Map(folders.map(f=>[String(f.folderName||f.name||'').trim().toLowerCase(),String(f.folderId||f.id||'')]))
+    const headers={Accept:'application/json',Authorization:`Zoho-oauthtoken ${token}`,'X-Zoho-Api-Domain':domain};
     for(const name of ['Inbox','Starred','Sent','Drafts','Trash']){
       const key=name.toLowerCase();
-      const folderId=key==='starred'?(cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||byName.get('inbox')||''):(cachedFolderId(name)||byName.get(key)||'');
-      if(!folderId){setFolderCount(name,0);continue;}
-      const serverCount=await countFolderMessages(accountId,folderId,headers,key==='starred');
-      if(serverCount===null)continue;
-      const previous=lastServerCounts.get(key);
-      lastServerCounts.set(key,serverCount);
-      if(key===active&&previous!==undefined&&previous!==serverCount)activeChanged=true;
-      const visible=key===active?renderedListCount():null;
-      const delta=optimistic.get(key)||0;
-      if(key===active&&visible!==null){
-        setFolderCount(name,visible);
-      }else if(delta&&previous===serverCount){
-        setFolderCount(name,serverCount+delta);
-      }else{
-        setFolderCount(name,serverCount);
-        optimistic.delete(key);
-      }
+      const id=key==='starred'?(cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||byName.get('inbox')||''):(cachedFolderId(name)||byName.get(key)||'');
+      const n=await countFolder(accountId,id,headers,key==='starred');
+      if(n===null)continue;
+      const delta=optimistic.get(name)||0;
+      setFolderCount(name,n+delta);
+      optimistic.delete(name);
     }
-    if(activeChanged){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>window.dispatchEvent(new CustomEvent('indomail:refresh')),50);}
-  }catch(e){console.warn('Folder count refresh failed',e);}
-  finally{refreshing=false;}
+  }finally{countBusy=false;if(countQueued)setTimeout(refreshFolderCounts,1000)}
 }
-
-function applyDeleteDelta(type,folderName){
-  const selected=String(folderName||selectedFolder());
-  const trash=selected.toLowerCase()==='trash';
-  if(type==='move-to-trash'&&!trash){adjustFolderCount(selected,-1);adjustFolderCount('Trash',1);}
-  else if(type==='permanent-delete'||trash){adjustFolderCount('Trash',-1);}
-}
-window.addEventListener('indomail:delete-success',e=>{applyDeleteDelta(e.detail?.type,e.detail?.folder);refreshFolderCounts();});
-window.addEventListener('indomail:folder-counts-refresh',e=>{applyDeleteDelta(e.detail?.type,e.detail?.folder);refreshFolderCounts();});
-
-function queueLiveCountRefresh(delay=250){clearTimeout(refreshTimer);refreshTimer=setTimeout(refreshFolderCounts,delay);}
-
-document.addEventListener('click',e=>{
-  const target=e.target.closest?.('[data-action="delete"],[data-action="star"],[data-draft-edit],#composeForm button[type="submit"]');
-  if(!target)return;
-  if(target.matches('[data-action="delete"]')){
-    const selected=selectedFolder();
-    if(selected.toLowerCase()==='trash')applyDeleteDelta('permanent-delete',selected);
-    else applyDeleteDelta('move-to-trash',selected);
-  }else if(target.matches('[data-action="star"]')){
-    const starred=target.textContent.includes('★');
-    adjustFolderCount('Starred',starred?-1:1);
-  }
-  queueLiveCountRefresh(500);
-},true);
-
-function observeMailList(){
-  const list=document.querySelector('#mailList');
-  if(!list||listObserver===list)return;
-  listObserver=new MutationObserver(()=>{syncActiveCountFromList();queueLiveCountRefresh(350);});
-  listObserver.observe(list,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
-  syncActiveCountFromList();
-}
-
-async function selectZohoFolder(name,button){
+function selectFolder(name,button){
   document.querySelectorAll('.sidebar .nav').forEach(n=>n.classList.remove('active'));
   button?.classList.add('active');
   const head=document.querySelector('.panel-head h2');if(head)head.textContent=name;
   if(window.innerWidth<=900)document.querySelector('#sidebar')?.classList.remove('open');
-  const folderId=name==='Starred'?(cachedFolderId('Inbox')||storeGet('indomail_zoho_inbox_folder_id')||''):(cachedFolderId(name)||(zohoFoldersCache?.find(f=>String(f.folderName||f.name||'').trim().toLowerCase()===name.toLowerCase())?.folderId||''));
+  const id=folderIdFrom(name);
   storeSet('indomail_selected_folder',name);
-  if(folderId)storeSet('indomail_selected_folder_id',String(folderId));
-  else{localStorage.removeItem('indomail_selected_folder_id');sessionStorage.removeItem('indomail_selected_folder_id');}
-  observeMailList();
-  window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId:String(folderId||'')}}));
-  syncActiveCountFromList();
-  refreshFolderCounts();
+  if(id)storeSet('indomail_selected_folder_id',String(id));else storeClear('indomail_selected_folder_id');
+  window.dispatchEvent(new CustomEvent('indomail:folder-changed',{detail:{name,folderId:String(id||'')}}));
+  setTimeout(refreshFolderCounts,1500);
 }
-
-function removeLegacyComposeElements(){document.querySelectorAll('#floatingCompose,.indomail-floating-compose').forEach(el=>el.remove());}
-function initFolderNavigation(){
-  removeLegacyComposeElements();
-  observeMailList();
-  const navs=[...document.querySelectorAll('.sidebar .nav')];
-  const names={Inbox:'Inbox',Starred:'Starred',Sent:'Sent',Drafts:'Drafts',Trash:'Trash'};
-  navs.forEach(button=>{if(button.dataset.folderBound==='1')return;const label=button.textContent.trim().replace(/\s+\d+$/,'').replace(/\s+—$/,'');if(names[label]){button.dataset.folderBound='1';button.addEventListener('click',()=>selectZohoFolder(names[label],button));}});
-  getZohoFolders().then(()=>refreshFolderCounts()).catch(()=>{});
-  if(folderCountTimer)clearInterval(folderCountTimer);
-  folderCountTimer=setInterval(refreshFolderCounts,1000);
+function bindNavigation(){
+  const supported=new Set(['Inbox','Starred','Sent','Drafts','Trash']);
+  document.querySelectorAll('.sidebar .nav').forEach(btn=>{
+    if(btn.dataset.folderBound==='1')return;
+    const label=btn.textContent.trim().replace(/\s+\d+$/,'');
+    if(!supported.has(label))return;
+    btn.dataset.folderBound='1';
+    btn.addEventListener('click',()=>selectFolder(label,btn));
+  });
+  const selected=getNavByName(selectedFolder());
+  document.querySelectorAll('.sidebar .nav').forEach(n=>n.classList.remove('active'));
+  selected?.classList.add('active');
 }
-window.addEventListener('indomail:logged-in',initFolderNavigation);
-window.addEventListener('indomail:refresh',()=>{observeMailList();syncActiveCountFromList();refreshFolderCounts();});
-window.addEventListener('indomail:folder-changed',()=>{observeMailList();syncActiveCountFromList();refreshFolderCounts();});
-window.addEventListener('load',initFolderNavigation);
-initFolderNavigation();
+function applyDeleteDelta(type,folder){
+  const current=String(folder||selectedFolder());
+  if(type==='move-to-trash'){adjustFolderCount(current,-1);adjustFolderCount('Trash',1)}
+  else if(type==='permanent-delete'||current.toLowerCase()==='trash')adjustFolderCount('Trash',-1);
+}
+window.addEventListener('indomail:delete-success',e=>{applyDeleteDelta(e.detail?.type,e.detail?.folder);setTimeout(refreshFolderCounts,1200)});
+window.addEventListener('indomail:folder-counts-refresh',e=>{applyDeleteDelta(e.detail?.type,e.detail?.folder);setTimeout(refreshFolderCounts,1200)});
+window.addEventListener('indomail:logged-in',()=>{foldersCache=null;bindNavigation();setTimeout(refreshFolderCounts,700)});
+window.addEventListener('indomail:refresh',()=>{bindNavigation();setTimeout(refreshFolderCounts,700)});
+window.addEventListener('load',()=>{bindNavigation();if(storeGet('indomail_zoho_access_token'))setTimeout(refreshFolderCounts,1200);countTimer&&clearInterval(countTimer);countTimer=setInterval(refreshFolderCounts,30000)});
+bindNavigation();
