@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.join(__dirname, 'public');
 const port = Number(process.env.PORT || 3000);
+const allowedOrigin = process.env.FRONTEND_ORIGIN || 'https://teamindomail.github.io';
 
 const mime = {
   '.html': 'text/html; charset=utf-8',
@@ -16,8 +17,17 @@ const mime = {
   '.svg': 'image/svg+xml',
 };
 
-function sendJson(res, status, body) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+function corsHeaders(origin) {
+  return {
+    'Access-Control-Allow-Origin': origin === allowedOrigin ? origin : allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Authorization,Content-Type,X-Zoho-Api-Domain',
+    'Vary': 'Origin',
+  };
+}
+
+function sendJson(res, status, body, extraHeaders = {}) {
+  res.writeHead(status, { ...corsHeaders(res.__origin || ''), 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...extraHeaders });
   res.end(JSON.stringify(body));
 }
 
@@ -36,12 +46,56 @@ async function serveFile(urlPath, res) {
   }
 }
 
+function validateZohoApiDomain(value) {
+  try {
+    const url = new URL(value || 'https://www.zohoapis.com');
+    if (url.protocol !== 'https:') return null;
+    if (!/^([a-z0-9-]+\.)*zohoapis\.[a-z.]+$/i.test(url.hostname)) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+async function proxyZoho(req, res, url) {
+  const token = req.headers.authorization;
+  if (!token?.startsWith('Zoho-oauthtoken ')) return sendJson(res, 401, { error: 'Missing Zoho authorization token' });
+  const apiDomain = validateZohoApiDomain(req.headers['x-zoho-api-domain']);
+  if (!apiDomain) return sendJson(res, 400, { error: 'Invalid Zoho API domain' });
+
+  const target = new URL(`${apiDomain}${url.pathname.replace('/api/zoho', '')}${url.search}`);
+  const upstream = await fetch(target, {
+    method: req.method,
+    headers: {
+      Accept: 'application/json',
+      Authorization: token,
+    },
+  });
+  const text = await upstream.text();
+  res.writeHead(upstream.status, {
+    ...corsHeaders(res.__origin || ''),
+    'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(text);
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    res.__origin = req.headers.origin || '';
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, corsHeaders(res.__origin));
+      return res.end();
+    }
 
     if (url.pathname === '/api/health' && req.method === 'GET') {
-      return sendJson(res, 200, { ok: true, app: 'IndoMail', version: '0.1.0' });
+      return sendJson(res, 200, { ok: true, app: 'IndoMail', version: '0.2.0' });
+    }
+
+    if (url.pathname.startsWith('/api/zoho/') && (req.method === 'GET' || req.method === 'POST')) {
+      return proxyZoho(req, res, url);
     }
 
     if (req.method !== 'GET') {
@@ -51,7 +105,7 @@ const server = http.createServer(async (req, res) => {
     return serveFile(url.pathname, res);
   } catch (error) {
     console.error('Server error:', error);
-    return sendJson(res, 500, { error: 'Internal server error' });
+    return sendJson(res, 500, { error: error.message || 'Internal server error' });
   }
 });
 
