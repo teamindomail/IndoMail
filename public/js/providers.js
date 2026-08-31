@@ -4,6 +4,10 @@ const ZOHO_ACCOUNTS_URL = 'https://accounts.zoho.com';
 
 let gmailToken = sessionStorage.getItem('indomail_gmail_access_token') || '';
 let gmailTokenClient;
+let zohoToken = sessionStorage.getItem('indomail_zoho_access_token') || '';
+let zohoApiDomain = sessionStorage.getItem('indomail_zoho_api_domain') || '';
+let zohoAccountId = sessionStorage.getItem('indomail_zoho_account_id') || '';
+let zohoInboxFolderId = sessionStorage.getItem('indomail_zoho_inbox_folder_id') || '';
 
 const styles = `
 .provider-test{margin-top:20px;padding:18px;border:1px solid #e2e6ef;border-radius:16px;background:#fbfcff;text-align:left}.provider-test h2{margin:0 0 6px;font-size:18px}.provider-test-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.provider-test button{border:1px solid #d5dbea;background:#fff;color:#182033;border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer}.provider-test-status{min-height:20px;font-size:13px}.provider-test-status.error{color:#a54d4d}.provider-test-status.success{color:#3f7a52}.provider-results{display:grid;gap:8px;margin-top:10px}.provider-result{padding:10px 12px;border:1px solid #e5e8f0;border-radius:10px;background:#fff}.provider-result strong{display:block}.provider-result span{display:block;font-size:12px;color:#737b89;margin-top:3px}.provider-result p{margin:5px 0 0;font-size:12px;color:#5b6371}
@@ -68,7 +72,7 @@ function connectZoho(panel) {
   const params = new URLSearchParams({
     response_type:'token',
     client_id:ZOHO_CLIENT_ID,
-    scope:'ZohoMail.messages.READ,ZohoMail.accounts.READ',
+    scope:'ZohoMail.messages.READ,ZohoMail.accounts.READ,ZohoMail.folders.READ',
     redirect_uri:redirectUri,
     access_type:'online',
     prompt:'consent',
@@ -77,13 +81,56 @@ function connectZoho(panel) {
   location.assign(`${ZOHO_ACCOUNTS_URL}/oauth/v2/auth?${params}`);
 }
 
+async function zohoRequest(path, options={}) {
+  if (!zohoToken) throw new Error('Zoho is not connected.');
+  const base = zohoApiDomain || 'https://www.zohoapis.com';
+  const response = await fetch(`${base}${path}`, {
+    ...options,
+    headers: {
+      Accept:'application/json',
+      Authorization:`Zoho-oauthtoken ${zohoToken}`,
+      ...(options.headers || {}),
+    },
+  });
+  if (!response.ok) throw new Error(`Zoho API ${response.status}: ${await response.text()}`);
+  return response.json();
+}
+
+async function loadZohoInbox(panel) {
+  setStatus(panel, 'Reading Zoho inbox…');
+  const accounts = await zohoRequest('/api/accounts');
+  const account = accounts?.data?.[0];
+  if (!account?.accountId) throw new Error('Zoho account ID was not returned.');
+  zohoAccountId = String(account.accountId);
+  sessionStorage.setItem('indomail_zoho_account_id', zohoAccountId);
+
+  const foldersResponse = await zohoRequest(`/api/accounts/${encodeURIComponent(zohoAccountId)}/folders`);
+  const folders = foldersResponse?.data || [];
+  const inbox = folders.find(folder => {
+    const name = String(folder.folderName || folder.name || '').toLowerCase();
+    return name === 'inbox';
+  });
+  if (!inbox?.folderId) throw new Error('Zoho Inbox folder was not returned.');
+  zohoInboxFolderId = String(inbox.folderId);
+  sessionStorage.setItem('indomail_zoho_inbox_folder_id', zohoInboxFolderId);
+
+  const mailResponse = await zohoRequest(`/api/accounts/${encodeURIComponent(zohoAccountId)}/messages/view?folderId=${encodeURIComponent(zohoInboxFolderId)}&limit=10&sortBy=date&sortorder=false&includeto=true`);
+  const messages = mailResponse?.data || [];
+  panel.querySelector('.provider-results').innerHTML = messages.map(message => `<div class="provider-result"><strong>${escapeHtml(message.subject || '(No subject)')}</strong><span>${escapeHtml(message.fromAddress || message.sender || 'Unknown sender')}</span><p>${escapeHtml(message.sentDateInGMT || message.receivedTime || '')}</p></div>`).join('') || '<p>No Zoho inbox messages returned.</p>';
+  setStatus(panel, `Zoho connected — ${messages.length} inbox message${messages.length === 1 ? '' : 's'} loaded.`);
+}
+
 function parseZohoReturn(panel) {
   const params = new URLSearchParams(location.hash.replace(/^#/,''));
   const token = params.get('access_token');
-  if (!token) return;
-  sessionStorage.setItem('indomail_zoho_access_token', token);
+  if (!token) return false;
+  zohoToken = token;
+  zohoApiDomain = params.get('api_domain') || 'https://www.zohoapis.com';
+  sessionStorage.setItem('indomail_zoho_access_token', zohoToken);
+  sessionStorage.setItem('indomail_zoho_api_domain', zohoApiDomain);
+  sessionStorage.setItem('indomail_zoho_expires_at', String(Date.now() + Number(params.get('expires_in') || 3600) * 1000));
   history.replaceState({}, document.title, `${location.pathname}${location.search}`);
-  setStatus(panel, 'Zoho authorization succeeded.');
+  return true;
 }
 
 function mountProviderPanel() {
@@ -106,19 +153,16 @@ window.addEventListener('indomail:logged-in', () => {
   panel?.classList.remove('hidden');
 });
 if (sessionStorage.getItem('indomail_google_id_token')) panel?.classList.remove('hidden');
-if (sessionStorage.getItem('indomail_zoho_access_token')) panel?.classList.remove('hidden');
+
+const zohoReturned = panel ? parseZohoReturn(panel) : false;
+if (panel && (zohoReturned || sessionStorage.getItem('indomail_zoho_access_token'))) {
+  document.querySelector('#loginView')?.classList.add('hidden');
+  document.querySelector('#inboxView')?.classList.remove('hidden');
+  panel.classList.remove('hidden');
+  loadZohoInbox(panel).catch(error => setStatus(panel, error.message, true));
+}
 
 const loginZohoButton = document.querySelector('[data-provider="Zoho"]');
 loginZohoButton?.addEventListener('click', () => {
   if (panel) connectZoho(panel);
 });
-
-if (panel) {
-  const before = sessionStorage.getItem('indomail_zoho_access_token');
-  parseZohoReturn(panel);
-  if (!before && sessionStorage.getItem('indomail_zoho_access_token')) {
-    document.querySelector('#loginView')?.classList.add('hidden');
-    document.querySelector('#inboxView')?.classList.remove('hidden');
-    panel.classList.remove('hidden');
-  }
-}
