@@ -8,7 +8,7 @@ const GOOGLE_CLIENT_ID = '564678253197-oqo4omi2r8co0vlui5ev3tq7c9j8jm13.apps.goo
 function setStatus(message, isError = true) {
   if (!status) return;
   status.textContent = message;
-  status.style.color = isError ? '#a54d4d' : '#3f7a52';
+  status.style.color = isError ? '#ff8596' : '#52e2a5';
 }
 
 function handleCredentialResponse(response) {
@@ -46,9 +46,9 @@ function renderGoogleButton() {
   const width = Math.min(400, Math.max(240, Math.floor(holder.parentElement?.clientWidth || 320)));
   window.google.accounts.id.renderButton(holder, {
     type: 'standard',
-    theme: 'outline',
+    theme: 'outline_dark',
     size: 'large',
-    text: 'signin_with',
+    text: 'continue_with',
     shape: 'rectangular',
     width,
     logo_alignment: 'left',
